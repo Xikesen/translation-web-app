@@ -1,0 +1,9 @@
+services:
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: libretranslate-mvp
+    ports:
+      - "5001:5000"
+    environment:
+      - LT_LOAD_ONLY=en,fr,zh,ja
+    restart: unless-stopped
