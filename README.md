@@ -1,25 +1,22 @@
 # Realtime Translation MVP (Local)
 
-这是一个可运行的最小骨架，翻译后端已切换为：
-- **本地 Ollama + Qwen3-8B（唯一翻译后端）**
+这是一个可运行的最小骨架，当前技术路径为：
+- **WebRTC 音频 -> VAD -> faster-whisper 转写 -> Ollama(Gemma 4-E4B Q8_0) 文本翻译**
 
-目标是先跑通：
-- 会话开始/结束（最多 2 分钟）
-- 多说话人映射（A/B/C/D，最多 4 人）
+当前目标：
+- 会话开始/结束（最多 10 分钟）
+- 多说话人映射（A/B/C，最多 3 人）
 - 实时消息处理
-- 翻译到目标语言（英语/法语/中文/日语）
+- 翻译到目标语言（英语/法语/中文/西班牙语）
 - 说话窗口生命周期（结束后保留最后 2 句，3 秒后关闭）
-- 屏幕最多显示 3 个说话窗口
-
-> 当前版本用“文本输入”模拟语音流，方便先验证后端协议和 UI 行为；后续可接入 `streamlit-webrtc + ASR + 声纹识别`。
 
 ## 1) 环境要求
 
-- macOS (Apple Silicon / Intel 均可)
+- macOS (Apple Silicon / Intel)
 - Python 3.11+
 - [Ollama](https://ollama.com/)（本地 LLM 服务）
 
-## 2) 安装并启动 Qwen3-8B
+## 2) 安装并启动 Gemma 模型
 
 安装 Ollama（Homebrew）：
 
@@ -27,24 +24,31 @@
 brew install ollama
 ```
 
-启动 Ollama 服务（新终端）：
+启动 Ollama 服务：
 
 ```bash
 ollama serve
 ```
 
-拉取模型（新终端）：
+拉取模型：
 
 ```bash
-ollama pull qwen3:8b
+ollama pull gemma-4-e4b:q8_0
 ```
 
-测试模型是否可用：
+测试模型可用性：
 
 ```bash
-curl http://localhost:11434/api/generate \
+curl http://localhost:11434/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"model":"qwen3:8b","prompt":"Translate hello to French. Output only translation.","stream":false}'
+  -d '{
+    "model":"gemma-4-e4b:q8_0",
+    "messages":[
+      {"role":"system","content":"You are a translation engine. Output translated text only."},
+      {"role":"user","content":"Translate to French: Hello everyone"}
+    ],
+    "stream":false
+  }'
 ```
 
 ## 3) 启动后端 (FastAPI)
@@ -54,10 +58,29 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
 export OLLAMA_URL=http://localhost:11434
-export OLLAMA_MODEL=qwen3:8b
+export OLLAMA_MODEL=gemma-4-e4b:q8_0
 export OLLAMA_TIMEOUT_SECONDS=120
 export OLLAMA_KEEP_ALIVE=30m
+export TARGET_LANG_DEFAULT=en
+
+export TRANSLATION_MAX_NEW_TOKENS=96
+export TRANSLATION_TEMPERATURE=0.0
+export TRANSLATION_TOP_P=0.9
+
+export ASR_BATCH_MS=400
+export ASR_COMMIT_SILENCE_MS=450
+export ASR_MIN_COMMIT_MS=700
+export ASR_MAX_SEGMENT_MS=1800
+
+export LID_SMOOTH_WINDOW=5
+export LID_MIN_CONFIDENCE=0.65
+
+export MERGE_SHORT_MAX_CHARS=18
+export MERGE_MAX_WAIT_SECONDS=2.0
+export MERGE_FORCE_CHARS=48
+
 uvicorn main:app --reload --port 8000
 ```
 
@@ -67,65 +90,50 @@ uvicorn main:app --reload --port 8000
 curl http://localhost:8000/health
 ```
 
-## 4) 启动前端 (Streamlit)
+## 4) 使用方式（WebRTC）
 
-新开一个终端：
+后端启动后，打开：
 
-```bash
-cd frontend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py --server.port 8501
-```
+`http://localhost:8000/webrtc`
 
-打开浏览器：`http://localhost:8501`
+页面点击 **Start** 后会：
+- 自动创建会话
+- 通过浏览器麦克风采集音频（WebAudio）
+- 下采样到 16k PCM 并通过 `ws_audio` 发送给 FastAPI
+- 后端先回推 `transcript`，再异步回推 `translation`
+- 内置 LID 平滑（减少 source_lang 抖动）
+- 内置短句合并提交（减少切碎翻译）
 
-## 5) 使用方式
+页面固定两个窗口：
+- Transcript（讲话者原文）
+- Translation（可切换 target language）
 
-1. 选择目标语言（`en/fr/zh/ja`）。
-2. 点击 **Start** 创建会话并连接 WebSocket。
-3. 在表单中选择 `Speaker Key`（如 `mic-1`）和输入文本，点击 **Send Utterance**。
-4. 观察右侧“Speaker Windows”：
-   - 同一个 `Speaker Key` 始终映射到固定角色（A/B/C/D）。
-   - 同时显示最多 3 个窗口。
-   - 某说话人停止输入后，窗口先保留最后 2 句，3 秒后自动消失。
-5. 点击 **Stop** 结束会话（或等待 2 分钟自动结束）。
+目标语言支持：`en/fr/zh/es`，会话中可切换。
 
-## 6) 翻译后端说明
+## 5) 翻译后端说明
 
-- 当前仅使用 **Qwen3-8B（Ollama）**
-- 后端调用 `POST /api/generate`
+- 当前仅使用 **Gemma 4-E4B Q8_0（Ollama）**
+- 后端调用 `POST /api/chat`
 - 若 Ollama 未启动或模型未拉取，页面 Events 会显示 `translation failed: ...`
-- 首次请求可能较慢（模型冷启动），建议等待 10-40 秒
+- 首次请求可能较慢（模型冷启动）
 
-## 7) 事件协议（核心）
-
-前端发送：
-
-```json
-{
-  "type": "utterance",
-  "speaker_key": "mic-1",
-  "text": "Hello everyone",
-  "source_lang": "en"
-}
-```
+## 6) 事件协议（核心）
 
 后端推送事件：
 - `connected`
+- `audio_connected`
 - `speaker_start`
-- `utterance`
+- `transcript`
+- `translation`
+- `target_lang_updated`
 - `speaker_end`
 - `speaker_expire`
 - `session_end`
 - `error`
 
-## 8) 下一步扩展（从 MVP 到真实语音）
+## 7) 下一步扩展
 
-- 接入 `streamlit-webrtc` 采集麦克风 PCM/Opus 分片
-- 后端加入 `VAD`（webrtcvad/silero-vad）
-- 接入 `faster-whisper` 做 ASR
-- 接入 `pyannote.audio` 做说话人分离与声纹匹配
-- 可选：接入真正的麦克风音频流后，把 source_lang 改为自动检测
-# Realtime-translation-mvp
+- 优化 WebRTC 前端（AudioWorklet 替代 ScriptProcessor）
+- 持续调优 `VAD + faster-whisper` 参数
+- 引入 benchmark（chunk 切分质量 + 翻译准确度）
+# ooni-glass-v1
