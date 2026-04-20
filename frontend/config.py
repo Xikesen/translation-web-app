@@ -1,4 +1,0 @@
-BACKEND_HTTP = "http://localhost:8000"
-SUPPORTED_LANGS = ["en", "fr", "zh", "ja"]
-MAX_WINDOWS = 3
-UTTERANCE_TIMEOUT_SECONDS = 130

@@ -1,0 +1,21 @@
+{
+  "en->zh": {
+    "ai agent": "ai agent",
+    "real-time translation": "实时翻译",
+    "latency": "延迟",
+    "meeting": "会议"
+  },
+  "zh->en": {
+    "实时翻译": "real-time translation",
+    "延迟": "latency",
+    "会议": "meeting"
+  },
+  "en->fr": {
+    "ai agent": "ai agent",
+    "latency": "latence"
+  },
+  "en->es": {
+    "ai agent": "ai agent",
+    "latency": "latencia"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "en->zh": {
+    "latency": "延迟",
+    "translation": "翻译",
+    "meeting": "会议",
+    "kpi": "KPI",
+    "roi": "ROI"
+  },
+  "zh->en": {
+    "延迟": "latency",
+    "翻译": "translation",
+    "会议": "meeting"
+  },
+  "en->fr": {
+    "latency": "latence",
+    "translation": "traduction"
+  },
+  "en->es": {
+    "latency": "latencia",
+    "translation": "traduccion"
+  }
+}

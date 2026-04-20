@@ -6,6 +6,8 @@ from config import (
     SPEAKER_END_AFTER_SECONDS,
     SPEAKER_KEEP_SECONDS,
 )
+from services.audio_stream_service import remove_pipeline
+from services.utterance_service import build_translation_events, flush_pending_text
 from models import StartSessionResponse, StopSessionResponse
 from state import SessionState, manager, sessions
 from utils import now_ts
@@ -14,6 +16,17 @@ from utils import now_ts
 async def emit_session_end(session: SessionState, reason: str) -> None:
     if not session.is_running:
         return
+    for speaker in session.speakers_by_label.values():
+        pending_text = flush_pending_text(speaker)
+        if not pending_text:
+            continue
+        translation_events = await build_translation_events(
+            session=session,
+            speaker=speaker,
+            source_text=pending_text,
+        )
+        for event in translation_events:
+            await manager.broadcast(session.session_id, event)
     session.is_running = False
     await manager.broadcast(
         session.session_id,
@@ -24,6 +37,7 @@ async def emit_session_end(session: SessionState, reason: str) -> None:
             "ts": now_ts(),
         },
     )
+    remove_pipeline(session.session_id)
 
 
 async def session_watchdog(session: SessionState) -> None:
@@ -35,6 +49,15 @@ async def session_watchdog(session: SessionState) -> None:
         for speaker in session.speakers_by_label.values():
             if speaker.is_active and now_ts() - speaker.last_active_ts >= SPEAKER_END_AFTER_SECONDS:
                 speaker.is_active = False
+                pending_text = flush_pending_text(speaker)
+                if pending_text:
+                    translation_events = await build_translation_events(
+                        session=session,
+                        speaker=speaker,
+                        source_text=pending_text,
+                    )
+                    for event in translation_events:
+                        await manager.broadcast(session.session_id, event)
                 if not speaker.end_sent:
                     speaker.end_sent = True
                     speaker.keep_until_ts = now_ts() + SPEAKER_KEEP_SECONDS

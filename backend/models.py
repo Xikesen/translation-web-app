@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class StartSessionRequest(BaseModel):
-    target_lang: str = Field(pattern="^(en|fr|zh|ja)$")
+    target_lang: str = Field(pattern="^(en|fr|zh|es)$")
 
 
 class StartSessionResponse(BaseModel):

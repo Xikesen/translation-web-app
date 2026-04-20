@@ -9,11 +9,16 @@ from fastapi import WebSocket
 class SpeakerState:
     label: str
     source_lang: str = "auto"
+    stable_source_lang: str = "auto"
     last_active_ts: float = 0.0
     is_active: bool = False
     end_sent: bool = False
     keep_until_ts: float | None = None
     last_two_lines: deque[str] = field(default_factory=lambda: deque(maxlen=2))
+    lid_history: deque[tuple[str, float]] = field(default_factory=lambda: deque(maxlen=8))
+    pending_text: str = ""
+    pending_started_ts: float | None = None
+    pending_updated_ts: float | None = None
 
 
 @dataclass

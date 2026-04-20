@@ -1,42 +1,26 @@
-# Realtime Translation MVP (Local)
+# Realtime Translation MVP (Current Runnable)
 
-这是一个可运行的最小骨架，当前技术路径为：
-- **WebRTC 音频 -> VAD -> faster-whisper 转写 -> Ollama(Gemma 4-E4B Q8_0) 文本翻译**
+当前版本是最小可运行闭环：
 
-当前目标：
-- 会话开始/结束（最多 10 分钟）
-- 多说话人映射（A/B/C，最多 3 人）
-- 实时消息处理
-- 翻译到目标语言（英语/法语/中文/西班牙语）
-- 说话窗口生命周期（结束后保留最后 2 句，3 秒后关闭）
+- `WebRTC audio -> VAD -> faster-whisper ASR -> translation router -> Ollama (Gemma 4-E4B Q8_0)`
+- 前端双窗口：`Transcript`（原文） + `Translation`（译文）
+- 支持语种：`en/fr/zh/es`
 
-## 1) 环境要求
+## 1) Prerequisites
 
-- macOS (Apple Silicon / Intel)
+- macOS
 - Python 3.11+
-- [Ollama](https://ollama.com/)（本地 LLM 服务）
+- [Ollama](https://ollama.com/)
 
-## 2) 安装并启动 Gemma 模型
-
-安装 Ollama（Homebrew）：
+## 2) Start Ollama + Model
 
 ```bash
 brew install ollama
-```
-
-启动 Ollama 服务：
-
-```bash
 ollama serve
-```
-
-拉取模型：
-
-```bash
 ollama pull gemma-4-e4b:q8_0
 ```
 
-测试模型可用性：
+Quick check:
 
 ```bash
 curl http://localhost:11434/api/chat \
@@ -51,89 +35,102 @@ curl http://localhost:11434/api/chat \
   }'
 ```
 
-## 3) 启动后端 (FastAPI)
+## 3) Start Backend
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
 
+Core envs (minimal):
+
+```bash
 export OLLAMA_URL=http://localhost:11434
 export OLLAMA_MODEL=gemma-4-e4b:q8_0
-export OLLAMA_TIMEOUT_SECONDS=120
-export OLLAMA_KEEP_ALIVE=30m
-export TARGET_LANG_DEFAULT=en
+export ASR_BATCH_MS=320
+export ASR_COMMIT_SILENCE_MS=650
+export ASR_MAX_SEGMENT_MS=2200
+export MERGE_SHORT_MAX_CHARS=24
+export MERGE_MAX_WAIT_SECONDS=2.3
+export MERGE_FORCE_CHARS=56
+export TRANSLATION_ROUTER_ENABLE_EXACT_CACHE=1
+export TRANSLATION_ROUTER_ENABLE_GLOSSARY=1
+export TRANSLATION_ROUTER_ENABLE_FUZZY_TM=1
+export TRANSLATION_ROUTER_ENABLE_TM_POLISH=1
+export TRANSLATION_EVENT_INCLUDE_ROUTE_METRICS=1
+```
 
-export TRANSLATION_MAX_NEW_TOKENS=96
-export TRANSLATION_TEMPERATURE=0.0
-export TRANSLATION_TOP_P=0.9
+Run server:
 
-export ASR_BATCH_MS=400
-export ASR_COMMIT_SILENCE_MS=450
-export ASR_MIN_COMMIT_MS=700
-export ASR_MAX_SEGMENT_MS=1800
-
-export LID_SMOOTH_WINDOW=5
-export LID_MIN_CONFIDENCE=0.65
-
-export MERGE_SHORT_MAX_CHARS=18
-export MERGE_MAX_WAIT_SECONDS=2.0
-export MERGE_FORCE_CHARS=48
-
+```bash
 uvicorn main:app --reload --port 8000
 ```
 
-健康检查：
+## 4) Verify
 
 ```bash
 curl http://localhost:8000/health
+curl http://localhost:8000/benchmark/translation
 ```
 
-## 4) 使用方式（WebRTC）
+Open:
 
-后端启动后，打开：
+- `http://localhost:8000/webrtc`
 
-`http://localhost:8000/webrtc`
+Click `Start` and speak. `translation` events include:
 
-页面点击 **Start** 后会：
-- 自动创建会话
-- 通过浏览器麦克风采集音频（WebAudio）
-- 下采样到 16k PCM 并通过 `ws_audio` 发送给 FastAPI
-- 后端先回推 `transcript`，再异步回推 `translation`
-- 内置 LID 平滑（减少 source_lang 抖动）
-- 内置短句合并提交（减少切碎翻译）
+- `route` (e.g. `glossary`, `tm_fuzzy(...)`, `tm_polish(...)`, `llm`)
+- `latency_ms`
 
-页面固定两个窗口：
-- Transcript（讲话者原文）
-- Translation（可切换 target language）
+## 5) Key APIs
 
-目标语言支持：`en/fr/zh/es`，会话中可切换。
+- `POST /session/start`
+- `POST /session/{session_id}/stop`
+- `POST /session/{session_id}/utterance` (text debug path)
+- `WS /ws_audio/{session_id}` (audio path)
+- `GET /benchmark/translation`
+- `POST /benchmark/translation/reset`
+- `POST /glossary/upload` (upload glossary JSON; hot reload)
 
-## 5) 翻译后端说明
+## 6) Glossary Upload Format
 
-- 当前仅使用 **Gemma 4-E4B Q8_0（Ollama）**
-- 后端调用 `POST /api/chat`
-- 若 Ollama 未启动或模型未拉取，页面 Events 会显示 `translation failed: ...`
-- 首次请求可能较慢（模型冷启动）
+- Upload entry point: `POST /glossary/upload` or `/webrtc` page upload button
+- JSON only, top-level must be an object
+- Key format: `"source_lang->target_lang"` (for example `en->zh`)
+- Value format: `{ "source term": "target term" }`
+- Reference template file: `backend/data/glossary.template.json`
 
-## 6) 事件协议（核心）
+Example:
 
-后端推送事件：
-- `connected`
-- `audio_connected`
-- `speaker_start`
-- `transcript`
-- `translation`
-- `target_lang_updated`
-- `speaker_end`
-- `speaker_expire`
-- `session_end`
-- `error`
+```json
+{
+  "en->zh": {
+    "ai agent": "ai agent",
+    "real-time translation": "实时翻译"
+  },
+  "zh->en": {
+    "实时翻译": "real-time translation"
+  }
+}
+```
 
-## 7) 下一步扩展
+## 7) Translation Routing Modes (Explained)
 
-- 优化 WebRTC 前端（AudioWorklet 替代 ScriptProcessor）
-- 持续调优 `VAD + faster-whisper` 参数
-- 引入 benchmark（chunk 切分质量 + 翻译准确度）
-# ooni-glass-v1
+Your understanding is mostly correct. Current routing has a fast-path layer before confidence-based routing:
+
+1. `exact_cache`: exact sentence cache hit, return immediately
+2. `glossary`: exact glossary hit, return immediately
+3. `tm_exact`: exact TM hit, return immediately
+4. confidence-based TM routing:
+   - high confidence (`score >= TRANSLATION_ROUTER_FUZZY_THRESHOLD`): `tm_fuzzy`, directly reuse TM translation
+   - medium confidence (`TRANSLATION_ROUTER_TM_POLISH_THRESHOLD <= score < TRANSLATION_ROUTER_FUZZY_THRESHOLD`): `tm_polish`, LLM post-edit on TM candidate
+   - low confidence (`score < TRANSLATION_ROUTER_TM_POLISH_THRESHOLD`): skip TM reuse and go to full `llm` translation
+5. `llm`: full fallback translation
+
+Notes:
+
+- Confidence score uses max of `Jaccard 3-gram` and `Levenshtein similarity`
+- Default thresholds: `fuzzy=0.93`, `tm_polish=0.85`
+- If `tm_polish` fails, system logs warning and falls back to `llm`

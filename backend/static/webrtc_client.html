@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Realtime Translation WebRTC</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 20px; }
+      .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+      #windows { display: grid; grid-template-columns: repeat(2, minmax(280px, 1fr)); gap: 12px; margin-top: 12px; }
+      .card { border: 1px solid #ccc; border-radius: 8px; padding: 8px; min-height: 100px; }
+      .muted { color: #666; font-size: 12px; }
+      pre { background: #111; color: #cde; padding: 8px; border-radius: 6px; height: 220px; overflow: auto; }
+      .line { margin-bottom: 4px; }
+      .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-right: 6px; }
+      .chip-default { background: #f0f0f0; color: #444; }
+      .chip-llm { background: #fff3e0; color: #b26a00; }
+      .chip-fuzzy { background: #eaf8ee; color: #1f7a3d; }
+      .chip-polish { background: #e8f7f2; color: #0b7560; }
+      .chip-exact { background: #e6f4ea; color: #1e6b38; }
+      .chip-glossary { background: #e8f0fe; color: #185abc; }
+      .chip-error { background: #fdecea; color: #b42318; }
+      button { padding: 6px 12px; }
+      select { padding: 6px; }
+    </style>
+  </head>
+  <body>
+    <h2>Realtime Translation (WebRTC to FastAPI)</h2>
+    <div class="row">
+      <label>Target language:</label>
+      <select id="targetLang">
+        <option value="en">en</option>
+        <option value="fr" selected>fr</option>
+        <option value="zh">zh</option>
+        <option value="es">es</option>
+      </select>
+      <button id="startBtn">Start</button>
+      <button id="stopBtn">Stop</button>
+      <span id="status" class="muted">idle</span>
+    </div>
+    <div class="row">
+      <span>Session: <code id="sessionId">-</code></span>
+    </div>
+    <div class="row">
+      <label>Glossary (.json):</label>
+      <input id="glossaryFile" type="file" accept=".json,application/json" />
+      <button id="uploadGlossaryBtn">Upload Glossary</button>
+      <span id="glossaryStatus" class="muted">not uploaded</span>
+    </div>
+
+    <div id="windows"></div>
+    <h4>Events</h4>
+    <pre id="logs"></pre>
+
+    <script>
+      const state = {
+        sessionId: null,
+        targetLang: "fr",
+        ws: null,
+        stream: null,
+        audioCtx: null,
+        sourceNode: null,
+        processor: null,
+        transcriptLines: [],
+        translationLines: [],
+        currentSpeaker: "-",
+        sourceLang: "auto",
+        lastTranslationRoute: "-",
+        lastTranslationLatencyMs: null,
+      };
+
+      const logsEl = document.getElementById("logs");
+      const windowsEl = document.getElementById("windows");
+      const statusEl = document.getElementById("status");
+      const sessionEl = document.getElementById("sessionId");
+      const glossaryStatusEl = document.getElementById("glossaryStatus");
+
+      function log(msg) {
+        logsEl.textContent += msg + "\n";
+        logsEl.scrollTop = logsEl.scrollHeight;
+      }
+
+      function renderWindows() {
+        const transcriptHtml = state.transcriptLines
+          .slice(-8)
+          .map((line) => `<div class="line">- ${line}</div>`)
+          .join("");
+        const translationHtml = state.translationLines
+          .slice(-8)
+          .map((line) => `<div class="line">- ${line}</div>`)
+          .join("");
+        const routeClass = routeChipClass(state.lastTranslationRoute);
+        const latencyClass = state.lastTranslationRoute === "fallback_error" ? "chip chip-error" : "chip chip-default";
+        windowsEl.innerHTML = `
+          <div class="card">
+            <strong>Transcript</strong>
+            <div class="muted">Speaker: ${state.currentSpeaker} | Source: ${state.sourceLang}</div>
+            ${transcriptHtml || "<div class='muted'>Waiting for speech...</div>"}
+          </div>
+          <div class="card">
+            <strong>Translation</strong>
+            <div class="muted">Target: ${state.targetLang}</div>
+            <div class="muted">
+              <span class="${routeClass}">route: ${state.lastTranslationRoute}</span>
+              <span class="${latencyClass}">latency: ${state.lastTranslationLatencyMs === null ? "-" : `${state.lastTranslationLatencyMs} ms`}</span>
+            </div>
+            ${translationHtml || "<div class='muted'>Waiting for translation...</div>"}
+          </div>
+        `;
+      }
+
+      function routeChipClass(routeName) {
+        if (!routeName || routeName === "-") return "chip chip-default";
+        if (routeName === "fallback_error") return "chip chip-error";
+        if (routeName.startsWith("llm")) return "chip chip-llm";
+        if (routeName.startsWith("tm_fuzzy")) return "chip chip-fuzzy";
+        if (routeName.startsWith("tm_polish")) return "chip chip-polish";
+        if (routeName.startsWith("tm_exact") || routeName.startsWith("exact_cache")) return "chip chip-exact";
+        if (routeName.startsWith("glossary")) return "chip chip-glossary";
+        return "chip chip-default";
+      }
+
+      function applyEvent(ev) {
+        if (ev.type === "audio_connected") {
+          if (ev.target_lang) {
+            state.targetLang = ev.target_lang;
+            document.getElementById("targetLang").value = ev.target_lang;
+          }
+        } else if (ev.type === "target_lang_updated") {
+          state.targetLang = ev.target_lang || state.targetLang;
+          document.getElementById("targetLang").value = state.targetLang;
+        } else if (ev.type === "transcript") {
+          state.currentSpeaker = ev.speaker_label || "-";
+          state.sourceLang = ev.source_lang || "auto";
+          state.transcriptLines.push(`${ev.speaker_label}: ${ev.source_text}`);
+          state.transcriptLines = state.transcriptLines.slice(-20);
+        } else if (ev.type === "translation") {
+          state.targetLang = ev.target_lang || state.targetLang;
+          state.translationLines.push(`${ev.speaker_label}: ${ev.translated_text}`);
+          state.translationLines = state.translationLines.slice(-20);
+          state.lastTranslationRoute = ev.route || "-";
+          state.lastTranslationLatencyMs =
+            typeof ev.latency_ms === "number" ? ev.latency_ms.toFixed(2) : null;
+        } else if (ev.type === "speaker_start" || ev.type === "speaker_end" || ev.type === "speaker_expire") {
+          // Speaker lifecycle events are logged only.
+        }
+        renderWindows();
+        log(JSON.stringify(ev));
+      }
+
+      async function createSession() {
+        const resp = await fetch("/session/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_lang: state.targetLang }),
+        });
+        if (!resp.ok) throw new Error("Failed to start session");
+        return resp.json();
+      }
+
+      async function stopSession() {
+        if (!state.sessionId) return;
+        await fetch(`/session/${state.sessionId}/stop`, { method: "POST" });
+      }
+
+      async function uploadGlossary() {
+        try {
+          const input = document.getElementById("glossaryFile");
+          const file = input.files && input.files[0];
+          if (!file) {
+            glossaryStatusEl.textContent = "please choose a .json file";
+            return;
+          }
+          if (!file.name.toLowerCase().endsWith(".json")) {
+            glossaryStatusEl.textContent = "only .json is supported";
+            return;
+          }
+          glossaryStatusEl.textContent = "uploading...";
+          const text = await file.text();
+          let payload = {};
+          try {
+            payload = JSON.parse(text);
+          } catch {
+            throw new Error("invalid json file");
+          }
+          const resp = await fetch("/glossary/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await resp.json();
+          if (!resp.ok) {
+            throw new Error(data.detail || "upload failed");
+          }
+          glossaryStatusEl.textContent = `uploaded: ${data.entries} entries / ${data.lang_pairs} pairs`;
+          log(`glossary uploaded: ${JSON.stringify(data)}`);
+        } catch (e) {
+          glossaryStatusEl.textContent = `upload error: ${e.message || e}`;
+          log("glossary upload error: " + e);
+        }
+      }
+
+      function sendTargetLangUpdate(lang) {
+        if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+        state.ws.send(JSON.stringify({ type: "set_target_lang", target_lang: lang }));
+      }
+
+      function downsampleTo16k(float32Array, inputRate) {
+        if (inputRate === 16000) return float32Array;
+        const ratio = inputRate / 16000;
+        const outLen = Math.floor(float32Array.length / ratio);
+        const out = new Float32Array(outLen);
+        let i = 0;
+        let j = 0;
+        while (i < outLen) {
+          const nextJ = Math.floor((i + 1) * ratio);
+          let sum = 0;
+          let count = 0;
+          for (; j < nextJ && j < float32Array.length; j++) {
+            sum += float32Array[j];
+            count++;
+          }
+          out[i] = count > 0 ? sum / count : 0;
+          i++;
+        }
+        return out;
+      }
+
+      function floatToInt16Bytes(float32Array) {
+        const out = new Int16Array(float32Array.length);
+        for (let i = 0; i < float32Array.length; i++) {
+          const s = Math.max(-1, Math.min(1, float32Array[i]));
+          out[i] = s < 0 ? s * 32768 : s * 32767;
+        }
+        return out.buffer;
+      }
+
+      async function startMicStreaming() {
+        state.stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const inRate = state.audioCtx.sampleRate;
+        state.sourceNode = state.audioCtx.createMediaStreamSource(state.stream);
+        state.processor = state.audioCtx.createScriptProcessor(4096, 1, 1);
+        state.sourceNode.connect(state.processor);
+        state.processor.connect(state.audioCtx.destination);
+
+        state.processor.onaudioprocess = (e) => {
+          if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+          const input = e.inputBuffer.getChannelData(0);
+          const pcm16k = downsampleTo16k(input, inRate);
+          const bytes = floatToInt16Bytes(pcm16k);
+          state.ws.send(bytes);
+        };
+      }
+
+      function stopMicStreaming() {
+        if (state.processor) {
+          state.processor.disconnect();
+          state.processor.onaudioprocess = null;
+          state.processor = null;
+        }
+        if (state.sourceNode) {
+          state.sourceNode.disconnect();
+          state.sourceNode = null;
+        }
+        if (state.audioCtx) {
+          state.audioCtx.close();
+          state.audioCtx = null;
+        }
+        if (state.stream) {
+          state.stream.getTracks().forEach((t) => t.stop());
+          state.stream = null;
+        }
+      }
+
+      async function start() {
+        try {
+          statusEl.textContent = "starting...";
+          state.targetLang = document.getElementById("targetLang").value;
+          const session = await createSession();
+          state.sessionId = session.session_id;
+          sessionEl.textContent = state.sessionId;
+          state.transcriptLines = [];
+          state.translationLines = [];
+          state.currentSpeaker = "-";
+          state.sourceLang = "auto";
+          state.lastTranslationRoute = "-";
+          state.lastTranslationLatencyMs = null;
+          renderWindows();
+
+          const scheme = location.protocol === "https:" ? "wss" : "ws";
+          state.ws = new WebSocket(`${scheme}://${location.host}/ws_audio/${state.sessionId}`);
+          state.ws.binaryType = "arraybuffer";
+          state.ws.onmessage = (msg) => {
+            try {
+              const ev = JSON.parse(msg.data);
+              applyEvent(ev);
+            } catch {
+              log("non-json message");
+            }
+          };
+          state.ws.onopen = async () => {
+            statusEl.textContent = "recording";
+            sendTargetLangUpdate(state.targetLang);
+            await startMicStreaming();
+          };
+          state.ws.onclose = () => {
+            statusEl.textContent = "stopped";
+          };
+        } catch (e) {
+          statusEl.textContent = "error";
+          log("start error: " + e);
+        }
+      }
+
+      async function stop() {
+        statusEl.textContent = "stopping...";
+        stopMicStreaming();
+        if (state.ws) {
+          try { state.ws.close(); } catch {}
+          state.ws = null;
+        }
+        await stopSession();
+        statusEl.textContent = "idle";
+      }
+
+      document.getElementById("startBtn").addEventListener("click", start);
+      document.getElementById("stopBtn").addEventListener("click", stop);
+      document.getElementById("uploadGlossaryBtn").addEventListener("click", uploadGlossary);
+      document.getElementById("targetLang").addEventListener("change", (e) => {
+        state.targetLang = e.target.value;
+        renderWindows();
+        sendTargetLangUpdate(state.targetLang);
+      });
+      renderWindows();
+    </script>
+  </body>
+</html>

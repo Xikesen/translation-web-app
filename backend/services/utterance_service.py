@@ -1,5 +1,18 @@
-from config import MAX_SPEAKERS, MAX_WINDOWS, SPEAKER_LABELS, SUPPORTED_LANGS
-from services.translator import translate_text
+from collections import Counter
+
+from config import (
+    LID_MIN_CONFIDENCE,
+    LID_SMOOTH_WINDOW,
+    MAX_SPEAKERS,
+    MAX_WINDOWS,
+    MERGE_FORCE_CHARS,
+    MERGE_MAX_WAIT_SECONDS,
+    MERGE_SHORT_MAX_CHARS,
+    SPEAKER_LABELS,
+    SUPPORTED_LANGS,
+    TRANSLATION_EVENT_INCLUDE_ROUTE_METRICS,
+)
+from services.translation_router import translate_with_router_detailed
 from state import SessionState, SpeakerState
 from utils import now_ts
 
@@ -17,25 +30,123 @@ def assign_speaker(session: SessionState, speaker_key: str) -> SpeakerState | No
     return speaker
 
 
-async def process_utterance(
+def _visible_labels(session: SessionState) -> list[str]:
+    ordered = sorted(
+        session.speakers_by_label.values(),
+        key=lambda s: s.last_active_ts,
+        reverse=True,
+    )
+    return [s.label for s in ordered[:MAX_WINDOWS]]
+
+
+def _normalize_source_lang(source_lang: str) -> str:
+    lang = source_lang.strip().lower()
+    if lang in SUPPORTED_LANGS:
+        return lang
+    return "auto"
+
+
+def _update_stable_source_lang(
+    speaker: SpeakerState,
+    observed_lang: str,
+    source_confidence: float | None,
+) -> None:
+    if observed_lang not in SUPPORTED_LANGS:
+        if speaker.stable_source_lang in SUPPORTED_LANGS:
+            speaker.source_lang = speaker.stable_source_lang
+        else:
+            speaker.source_lang = "auto"
+        return
+
+    confidence = source_confidence if source_confidence is not None else 0.0
+    speaker.lid_history.append((observed_lang, confidence))
+    recent = list(speaker.lid_history)[-LID_SMOOTH_WINDOW:]
+    qualified = [lang for lang, conf in recent if conf >= LID_MIN_CONFIDENCE]
+    if not qualified:
+        if speaker.stable_source_lang in SUPPORTED_LANGS:
+            speaker.source_lang = speaker.stable_source_lang
+        else:
+            speaker.source_lang = observed_lang
+        return
+
+    counts = Counter(qualified)
+    stable_lang, _ = max(counts.items(), key=lambda item: (item[1], item[0]))
+    speaker.stable_source_lang = stable_lang
+    speaker.source_lang = stable_lang
+
+
+def _append_pending_text(speaker: SpeakerState, source_text: str, current_ts: float) -> None:
+    text = source_text.strip()
+    if not text:
+        return
+    if not speaker.pending_text:
+        speaker.pending_text = text
+        speaker.pending_started_ts = current_ts
+        speaker.pending_updated_ts = current_ts
+        return
+    needs_space = not speaker.pending_text.endswith((" ", "\n")) and not text.startswith(
+        (".", ",", "!", "?", ";", ":", "。", "，", "！", "？", "；", "：")
+    )
+    if needs_space:
+        speaker.pending_text += " "
+    speaker.pending_text += text
+    speaker.pending_updated_ts = current_ts
+
+
+def _should_flush_pending(speaker: SpeakerState, latest_text: str, current_ts: float) -> bool:
+    pending = speaker.pending_text.strip()
+    if not pending:
+        return False
+    if len(pending) >= MERGE_FORCE_CHARS:
+        return True
+    if pending.endswith((".", "!", "?", ";", ":", "。", "！", "？", "；", "：")):
+        return True
+    if len(latest_text.strip()) >= MERGE_SHORT_MAX_CHARS:
+        return True
+    if speaker.pending_started_ts is not None and (current_ts - speaker.pending_started_ts) >= MERGE_MAX_WAIT_SECONDS:
+        return True
+    return False
+
+
+def flush_pending_text(speaker: SpeakerState) -> str:
+    text = speaker.pending_text.strip()
+    speaker.pending_text = ""
+    speaker.pending_started_ts = None
+    speaker.pending_updated_ts = None
+    return text
+
+
+def prepare_utterance(
     session: SessionState,
     speaker_key: str,
     source_text: str,
     source_lang: str,
-) -> list[dict]:
+    source_confidence: float | None = None,
+    force_commit: bool = False,
+) -> tuple[list[dict], SpeakerState | None, str | None]:
     events: list[dict] = []
     speaker = assign_speaker(session, speaker_key)
     if speaker is None:
-        return [
-            {
-                "type": "error",
-                "message": "max 4 speakers reached",
-                "ts": now_ts(),
-            }
-        ]
+        return (
+            [
+                {
+                    "type": "error",
+                    "message": f"max {MAX_SPEAKERS} speakers reached",
+                    "ts": now_ts(),
+                }
+            ],
+            None,
+            None,
+        )
 
-    speaker.source_lang = source_lang if source_lang in SUPPORTED_LANGS else "auto"
-    speaker.last_active_ts = now_ts()
+    normalized_lang = _normalize_source_lang(source_lang)
+    if normalized_lang == "auto":
+        _update_stable_source_lang(speaker, observed_lang="auto", source_confidence=source_confidence)
+    else:
+        _update_stable_source_lang(speaker, observed_lang=normalized_lang, source_confidence=source_confidence)
+
+    current_ts = now_ts()
+    speaker.last_active_ts = current_ts
     was_active = speaker.is_active
     speaker.is_active = True
     speaker.end_sent = False
@@ -46,16 +157,46 @@ async def process_utterance(
             {
                 "type": "speaker_start",
                 "speaker_label": speaker.label,
-                "ts": now_ts(),
+                "ts": current_ts,
             }
         )
 
+    events.append(
+        {
+            "type": "transcript",
+            "speaker_label": speaker.label,
+            "source_lang": speaker.source_lang,
+            "source_text": source_text,
+            "target_lang": session.target_lang,
+            "visible_labels": _visible_labels(session),
+            "ts": current_ts,
+        }
+    )
+
+    _append_pending_text(speaker, source_text, current_ts)
+    translation_source_text: str | None = None
+    if force_commit or _should_flush_pending(speaker, source_text, current_ts):
+        translation_source_text = flush_pending_text(speaker)
+    return events, speaker, translation_source_text
+
+
+async def build_translation_events(
+    session: SessionState,
+    speaker: SpeakerState,
+    source_text: str,
+) -> list[dict]:
+    events: list[dict] = []
+    route_name = "fallback_error"
+    latency_ms = 0.0
     try:
-        translated_text = await translate_text(
-            source_text,
+        route_result = await translate_with_router_detailed(
+            source_text=source_text,
             source_lang=speaker.source_lang,
             target_lang=session.target_lang,
         )
+        translated_text = route_result.translated_text
+        route_name = route_result.route
+        latency_ms = route_result.latency_ms
     except Exception as exc:
         translated_text = source_text
         events.append(
@@ -68,23 +209,45 @@ async def process_utterance(
 
     speaker.last_two_lines.append(translated_text)
 
-    ordered = sorted(
-        session.speakers_by_label.values(),
-        key=lambda s: s.last_active_ts,
-        reverse=True,
-    )
-    visible_labels = [s.label for s in ordered[:MAX_WINDOWS]]
+    payload = {
+        "type": "translation",
+        "speaker_label": speaker.label,
+        "source_lang": speaker.source_lang,
+        "target_lang": session.target_lang,
+        "source_text": source_text,
+        "translated_text": translated_text,
+        "visible_labels": _visible_labels(session),
+        "ts": now_ts(),
+    }
+    if TRANSLATION_EVENT_INCLUDE_ROUTE_METRICS:
+        payload["route"] = route_name
+        payload["latency_ms"] = latency_ms
+    events.append(payload)
+    return events
 
-    events.append(
-        {
-            "type": "utterance",
-            "speaker_label": speaker.label,
-            "source_lang": speaker.source_lang,
-            "target_lang": session.target_lang,
-            "source_text": source_text,
-            "translated_text": translated_text,
-            "visible_labels": visible_labels,
-            "ts": now_ts(),
-        }
+
+async def process_utterance(
+    session: SessionState,
+    speaker_key: str,
+    source_text: str,
+    source_lang: str,
+) -> list[dict]:
+    events, speaker, translation_source_text = prepare_utterance(
+        session=session,
+        speaker_key=speaker_key,
+        source_text=source_text,
+        source_lang=source_lang,
+        source_confidence=1.0 if source_lang in SUPPORTED_LANGS else None,
+        force_commit=True,
     )
+    if speaker is None:
+        return events
+    if translation_source_text:
+        events.extend(
+            await build_translation_events(
+                session=session,
+                speaker=speaker,
+                source_text=translation_source_text,
+            )
+        )
     return events

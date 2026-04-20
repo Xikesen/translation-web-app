@@ -1,0 +1,15 @@
+.DS_Store
+.pycache/
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+backend/.venv/
+backend/.ar_venv/
+.docx-venv/
+
+# Local model artifacts
+*.gguf
+*.gguf
+.DS_Store
