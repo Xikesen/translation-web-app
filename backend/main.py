@@ -268,7 +268,7 @@ async def session_audio_ws(websocket: WebSocket, session_id: str) -> None:
                     source_text=item.source_text,
                     source_lang=item.source_lang,
                     source_confidence=item.source_confidence,
-                    force_commit=False,
+                    force_commit=item.is_final,
                 )
                 for event in events:
                     await manager.broadcast(session_id, event)

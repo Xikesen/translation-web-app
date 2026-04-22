@@ -10,6 +10,7 @@ class SpeakerState:
     label: str
     source_lang: str = "auto"
     stable_source_lang: str = "auto"
+    committed_source_text: str = ""
     last_active_ts: float = 0.0
     is_active: bool = False
     end_sent: bool = False

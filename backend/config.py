@@ -15,6 +15,34 @@ LANG_DISPLAY_NAMES = {
     "es": "Spanish",
 }
 
+MANAGER_BACKEND = os.getenv("MANAGER_BACKEND", "student_editor")
+SINGLETRANS_ROOT = os.getenv("SINGLETRANS_ROOT", r"G:\singletrans")
+STUDENT_EDITOR_ACTION_MODEL_DIR = os.getenv(
+    "STUDENT_EDITOR_ACTION_MODEL_DIR",
+    os.path.join(
+        SINGLETRANS_ROOT,
+        "logs",
+        "student_editor_action_run_v9_meeting_round2_targeted_clean_v3",
+        "model",
+    ),
+)
+STUDENT_EDITOR_EDIT_MODEL_DIR = os.getenv(
+    "STUDENT_EDITOR_EDIT_MODEL_DIR",
+    os.path.join(
+        SINGLETRANS_ROOT,
+        "logs",
+        "student_editor_edit_run_v20_meeting_round2_targeted_clean_v3",
+        "model",
+    ),
+)
+STUDENT_EDITOR_DRAFT_BACKEND = os.getenv("STUDENT_EDITOR_DRAFT_BACKEND", "hf_local_candidate")
+STUDENT_EDITOR_DRAFT_MODEL = os.getenv("STUDENT_EDITOR_DRAFT_MODEL", "opus_mt_en_zh")
+STUDENT_EDITOR_DEVICE = os.getenv("STUDENT_EDITOR_DEVICE", "cuda:0")
+STUDENT_EDITOR_TORCH_DTYPE = os.getenv("STUDENT_EDITOR_TORCH_DTYPE", "float16")
+STUDENT_EDITOR_RUN_ACTION = os.getenv("STUDENT_EDITOR_RUN_ACTION", "1") == "1"
+STUDENT_EDITOR_RUN_EDIT = os.getenv("STUDENT_EDITOR_RUN_EDIT", "1") == "1"
+STUDENT_EDITOR_ALWAYS_RUN_EDIT = os.getenv("STUDENT_EDITOR_ALWAYS_RUN_EDIT", "0") == "1"
+
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma-4-e4b:q8_0")
 OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "120"))
@@ -24,10 +52,20 @@ TRANSLATION_MAX_NEW_TOKENS = int(os.getenv("TRANSLATION_MAX_NEW_TOKENS", "96"))
 TRANSLATION_TEMPERATURE = float(os.getenv("TRANSLATION_TEMPERATURE", "0.0"))
 TRANSLATION_TOP_P = float(os.getenv("TRANSLATION_TOP_P", "0.9"))
 
-ASR_BATCH_MS = int(os.getenv("ASR_BATCH_MS", "320"))
-ASR_COMMIT_SILENCE_MS = int(os.getenv("ASR_COMMIT_SILENCE_MS", "650"))
+ASR_BACKEND = os.getenv("ASR_BACKEND", "transformers_whisper_local")
+ASR_BATCH_MS = int(os.getenv("ASR_BATCH_MS", "800"))
+ASR_COMMIT_SILENCE_MS = int(os.getenv("ASR_COMMIT_SILENCE_MS", "500"))
 ASR_MIN_COMMIT_MS = int(os.getenv("ASR_MIN_COMMIT_MS", "700"))
 ASR_MAX_SEGMENT_MS = int(os.getenv("ASR_MAX_SEGMENT_MS", "2200"))
+ASR_MODEL_NAME = os.getenv(
+    "ASR_MODEL_NAME",
+    "openai/whisper-large-v3-turbo" if ASR_BACKEND == "transformers_whisper_local" else "small.en",
+)
+ASR_DEVICE = os.getenv("ASR_DEVICE", "cuda")
+ASR_COMPUTE_TYPE = os.getenv("ASR_COMPUTE_TYPE", "float16")
+ASR_LANGUAGE_HINT = os.getenv("ASR_LANGUAGE_HINT", "en")
+AUDIO_VOICED_RATIO_THRESHOLD = float(os.getenv("AUDIO_VOICED_RATIO_THRESHOLD", "0.12"))
+AUDIO_ENERGY_THRESHOLD = float(os.getenv("AUDIO_ENERGY_THRESHOLD", "0.0012"))
 
 LID_SMOOTH_WINDOW = int(os.getenv("LID_SMOOTH_WINDOW", "5"))
 LID_MIN_CONFIDENCE = float(os.getenv("LID_MIN_CONFIDENCE", "0.65"))

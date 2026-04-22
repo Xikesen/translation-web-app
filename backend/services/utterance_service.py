@@ -10,9 +10,12 @@ from config import (
     MERGE_SHORT_MAX_CHARS,
     SPEAKER_LABELS,
     SUPPORTED_LANGS,
+    TARGET_LANG_DEFAULT,
     TRANSLATION_EVENT_INCLUDE_ROUTE_METRICS,
 )
-from services.translation_router import translate_with_router_detailed
+from services.source_state_manager import merge_source_context
+from services.translation_input_normalizer import normalize_translation_input
+from services.translation_manager import SOURCE_CONTEXT_MAX_CHARS, translate_with_manager_detailed
 from state import SessionState, SpeakerState
 from utils import now_ts
 
@@ -186,17 +189,30 @@ async def build_translation_events(
     source_text: str,
 ) -> list[dict]:
     events: list[dict] = []
-    route_name = "fallback_error"
+    route_name = "manager_fallback_error"
     latency_ms = 0.0
+    normalized_input = normalize_translation_input(
+        source_text=source_text,
+        source_lang=speaker.source_lang,
+    )
+    translation_source_text = normalized_input.normalized_text
     try:
-        route_result = await translate_with_router_detailed(
-            source_text=source_text,
-            source_lang=speaker.source_lang,
-            target_lang=session.target_lang,
+        source_lang = speaker.source_lang if speaker.source_lang in SUPPORTED_LANGS else "auto"
+        target_lang = session.target_lang if session.target_lang in SUPPORTED_LANGS else TARGET_LANG_DEFAULT
+        route_result = await translate_with_manager_detailed(
+            source_text=translation_source_text,
+            source_lang=source_lang,
+            target_lang=target_lang,
+            committed_source_text=speaker.committed_source_text,
         )
         translated_text = route_result.translated_text
         route_name = route_result.route
         latency_ms = route_result.latency_ms
+        speaker.committed_source_text = merge_source_context(
+            speaker.committed_source_text,
+            translation_source_text,
+            max_chars=SOURCE_CONTEXT_MAX_CHARS,
+        )
     except Exception as exc:
         translated_text = source_text
         events.append(
@@ -219,9 +235,17 @@ async def build_translation_events(
         "visible_labels": _visible_labels(session),
         "ts": now_ts(),
     }
+    if normalized_input.changed:
+        payload["normalized_source_text"] = translation_source_text
+        payload["normalization_notes"] = normalized_input.notes
     if TRANSLATION_EVENT_INCLUDE_ROUTE_METRICS:
         payload["route"] = route_name
         payload["latency_ms"] = latency_ms
+        if "route_result" in locals():
+            payload["gate_action"] = route_result.gate_decision.action
+            payload["gate_reasons"] = route_result.gate_decision.reason_codes
+            payload["write_mode"] = route_result.write_plan.mode
+            payload["risk_notes"] = route_result.risk_notes
     events.append(payload)
     return events
 

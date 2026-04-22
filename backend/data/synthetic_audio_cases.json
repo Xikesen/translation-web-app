@@ -1,0 +1,22 @@
+[
+  {
+    "id": "project_atlas",
+    "text": "We will not delay Project Atlas until June.",
+    "target_lang": "zh"
+  },
+  {
+    "id": "budget_condition",
+    "text": "If the budget changes, we will revise the timeline.",
+    "target_lang": "zh"
+  },
+  {
+    "id": "q3_ship",
+    "text": "We will not ship before Q3.",
+    "target_lang": "zh"
+  },
+  {
+    "id": "quick_return",
+    "text": "We will be right back.",
+    "target_lang": "zh"
+  }
+]
