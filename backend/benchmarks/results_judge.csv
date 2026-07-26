@@ -1,0 +1,49 @@
+condition,model,id,direction,latency_ms,chrf,judge,tokens_per_sec,source,reference,hypothesis
+baseline,gemma-4-e4b:q8_0,en2zh-01,en2zh,971.0,83.05,100.0,19.42,The board will approve the 2026 budget next quarter.,董事会将在下个季度批准2026年的预算。,董事会将在下个季度批准2026年预算。
+baseline,gemma-4-e4b:q8_0,en2zh-02,en2zh,964.2,27.59,95.0,19.52,"If revenue does not grow, we will not expand the team in March.",如果收入没有增长，我们三月份就不会扩充团队。,如果收入不增长，我们将在3月不扩建团队。
+baseline,gemma-4-e4b:q8_0,en2zh-03,en2zh,984.8,69.59,100.0,19.4,Sarah said the launch is delayed by two weeks due to a supply issue.,Sarah说由于供应问题，发布推迟了两周。,莎拉说，由于供应问题，发布推迟了两周。
+baseline,gemma-4-e4b:q8_0,en2zh-04,en2zh,862.7,100.0,100.0,19.65,Our Q3 profit rose 15 percent compared with last year.,我们第三季度的利润比去年增长了15%。,我们第三季度的利润比去年增长了15%。
+baseline,gemma-4-e4b:q8_0,en2zh-05,en2zh,850.7,37.28,100.0,19.44,Please review the contract before the meeting on Friday afternoon.,请在周五下午开会之前审阅这份合同。,请在周五下午的会议前审阅合同。
+baseline,gemma-4-e4b:q8_0,en2zh-06,en2zh,879.1,65.86,100.0,19.48,"The new model reduces latency, but it requires more memory.",新模型降低了延迟，但需要更多内存。,新模型降低了延迟，但它需要更多的内存。
+baseline,gemma-4-e4b:q8_0,en2zh-07,en2zh,791.2,73.12,100.0,19.66,We cannot ship the product unless the safety test passes.,除非安全测试通过，否则我们无法发货。,除非安全测试通过，否则我们不能发货。
+baseline,gemma-4-e4b:q8_0,en2zh-08,en2zh,1209.1,79.92,100.0,18.65,John will present the results at 9 a.m. tomorrow in Room 204.,John将于明天上午9点在204房间汇报结果。,John 将于明天上午 9 点在 204 房间展示结果。
+baseline,gemma-4-e4b:q8_0,en2zh-09,en2zh,848.1,71.19,100.0,19.75,The discount applies only to orders over five hundred dollars.,该折扣仅适用于超过五百美元的订单。,折扣仅适用于订单金额超过五百美元的订单。
+baseline,gemma-4-e4b:q8_0,en2zh-10,en2zh,957.5,64.66,100.0,19.48,"Honestly, I think we should delay the decision until the data is clear.",老实说，我认为我们应该等数据明确之后再做决定。,老实说，我认为我们应该等到数据清晰后再做决定。
+baseline,gemma-4-e4b:q8_0,en2zh-11,en2zh,850.9,73.41,100.0,19.62,"She did not agree with the proposal, and she asked for more details.",她不同意这个提案，并要求提供更多细节。,她不同意该提案，并要求提供更多细节。
+baseline,gemma-4-e4b:q8_0,en2zh-12,en2zh,1030.9,80.08,100.0,19.14,"The server crashed twice last night, so we rolled back the update.",服务器昨晚崩溃了两次，所以我们回滚了更新。,昨晚服务器崩溃了两次，所以我们回滚了更新。
+baseline,gemma-4-e4b:q8_0,zh2en-01,zh2en,976.7,100.0,100.0,19.25,如果明天下雨，会议就改到下周一。,"If it rains tomorrow, the meeting will be moved to next Monday.","If it rains tomorrow, the meeting will be moved to next Monday."
+baseline,gemma-4-e4b:q8_0,zh2en-02,zh2en,735.6,60.41,100.0,18.59,我们第二季度的销售额增长了百分之二十。,Our second-quarter sales grew by 20 percent.,Our second quarter sales increased by twenty percent.
+baseline,gemma-4-e4b:q8_0,zh2en-03,zh2en,1064.5,73.23,100.0,19.19,张总说这个项目预算不能超过一百万。,Mr. Zhang said the project budget cannot exceed one million.,Mr. Zhang said the budget for this project cannot exceed 1 million.
+baseline,gemma-4-e4b:q8_0,zh2en-04,zh2en,817.5,100.0,100.0,19.61,除非客户确认，否则我们不会开始生产。,"Unless the client confirms, we will not start production.","Unless the client confirms, we will not start production."
+baseline,gemma-4-e4b:q8_0,zh2en-05,zh2en,645.2,100.0,100.0,20.18,请在周三之前把报告发给我。,Please send me the report before Wednesday.,Please send me the report before Wednesday.
+baseline,gemma-4-e4b:q8_0,zh2en-06,zh2en,1105.6,71.21,100.0,18.93,新版本修复了三个严重的漏洞，但还没有完全测试。,"The new version fixed three critical bugs, but it has not been fully tested.","The new version fixed three serious vulnerabilities, but has not been fully tested yet."
+baseline,gemma-4-e4b:q8_0,zh2en-07,zh2en,1151.8,44.81,100.0,19.15,他没有反对这个计划，只是希望再等一周。,He did not oppose the plan; he just wanted to wait one more week.,"He didn't object to the plan, he just hoped to wait another week."
+baseline,gemma-4-e4b:q8_0,zh2en-08,zh2en,1097.7,100.0,100.0,19.19,我们的团队将于五月十号搬到新办公室。,Our team will move to the new office on May 10th.,Our team will move to the new office on May 10th.
+baseline,gemma-4-e4b:q8_0,zh2en-09,zh2en,1031.8,56.25,100.0,19.17,这次折扣只针对老客户，新客户不适用。,This discount is only for existing customers and does not apply to new ones.,"This discount is only for old customers, not applicable to new customers."
+baseline,gemma-4-e4b:q8_0,zh2en-10,zh2en,1059.3,87.51,100.0,19.08,说实话，我觉得这个方案的风险太高了。,"Honestly, I think the risk of this plan is too high.","To be honest, I think the risk of this plan is too high."
+baseline,gemma-4-e4b:q8_0,zh2en-11,zh2en,1154.8,91.44,100.0,18.84,李娜负责市场，王强负责技术。,"Li Na is in charge of marketing, and Wang Qiang is in charge of technology.","Li Na is in charge of marketing, Wang Qiang is in charge of technology."
+baseline,gemma-4-e4b:q8_0,zh2en-12,zh2en,874.0,84.63,100.0,19.41,如果价格再涨，我们就考虑换供应商。,"If the price rises again, we will consider switching suppliers.","If the price rises again, we will consider changing suppliers."
+skill,gemma-4-e4b:q8_0,en2zh-01,en2zh,1025.8,100.0,100.0,18.95,The board will approve the 2026 budget next quarter.,董事会将在下个季度批准2026年的预算。,董事会将在下个季度批准2026年的预算。
+skill,gemma-4-e4b:q8_0,en2zh-02,en2zh,902.1,66.81,100.0,19.14,"If revenue does not grow, we will not expand the team in March.",如果收入没有增长，我们三月份就不会扩充团队。,如果收入没有增长，我们三月就不会扩大团队。
+skill,gemma-4-e4b:q8_0,en2zh-03,en2zh,1043.2,69.59,100.0,18.58,Sarah said the launch is delayed by two weeks due to a supply issue.,Sarah说由于供应问题，发布推迟了两周。,莎拉说，由于供应问题，发布推迟了两周。
+skill,gemma-4-e4b:q8_0,en2zh-04,en2zh,935.1,100.0,100.0,19.12,Our Q3 profit rose 15 percent compared with last year.,我们第三季度的利润比去年增长了15%。,我们第三季度的利润比去年增长了15%。
+skill,gemma-4-e4b:q8_0,en2zh-05,en2zh,901.7,37.78,100.0,17.84,Please review the contract before the meeting on Friday afternoon.,请在周五下午开会之前审阅这份合同。,请在周五下午会议前审阅合同。
+skill,gemma-4-e4b:q8_0,en2zh-06,en2zh,920.2,65.86,100.0,18.68,"The new model reduces latency, but it requires more memory.",新模型降低了延迟，但需要更多内存。,新模型降低了延迟，但它需要更多的内存。
+skill,gemma-4-e4b:q8_0,en2zh-07,en2zh,842.4,73.12,100.0,19.03,We cannot ship the product unless the safety test passes.,除非安全测试通过，否则我们无法发货。,除非安全测试通过，否则我们不能发货。
+skill,gemma-4-e4b:q8_0,en2zh-08,en2zh,959.3,52.48,100.0,18.91,John will present the results at 9 a.m. tomorrow in Room 204.,John将于明天上午9点在204房间汇报结果。,约翰明天上午9点在204房间展示结果。
+skill,gemma-4-e4b:q8_0,en2zh-09,en2zh,723.1,44.56,100.0,19.43,The discount applies only to orders over five hundred dollars.,该折扣仅适用于超过五百美元的订单。,折扣仅适用于五百美元以上的订单。
+skill,gemma-4-e4b:q8_0,en2zh-10,en2zh,1232.3,64.66,100.0,17.35,"Honestly, I think we should delay the decision until the data is clear.",老实说，我认为我们应该等数据明确之后再做决定。,老实说，我认为我们应该等到数据清晰后再做决定。
+skill,gemma-4-e4b:q8_0,en2zh-11,en2zh,916.5,45.44,100.0,18.01,"She did not agree with the proposal, and she asked for more details.",她不同意这个提案，并要求提供更多细节。,她不同意该提案，并要求更多细节。
+skill,gemma-4-e4b:q8_0,en2zh-12,en2zh,1044.2,100.0,100.0,18.62,"The server crashed twice last night, so we rolled back the update.",服务器昨晚崩溃了两次，所以我们回滚了更新。,服务器昨晚崩溃了两次，所以我们回滚了更新。
+skill,gemma-4-e4b:q8_0,zh2en-01,zh2en,1082.0,100.0,100.0,17.9,如果明天下雨，会议就改到下周一。,"If it rains tomorrow, the meeting will be moved to next Monday.","If it rains tomorrow, the meeting will be moved to next Monday."
+skill,gemma-4-e4b:q8_0,zh2en-02,zh2en,737.3,60.41,100.0,19.6,我们第二季度的销售额增长了百分之二十。,Our second-quarter sales grew by 20 percent.,Our second quarter sales increased by twenty percent.
+skill,gemma-4-e4b:q8_0,zh2en-03,zh2en,886.8,92.27,100.0,19.09,张总说这个项目预算不能超过一百万。,Mr. Zhang said the project budget cannot exceed one million.,Mr. Zhang said this project budget cannot exceed one million.
+skill,gemma-4-e4b:q8_0,zh2en-04,zh2en,841.2,100.0,100.0,19.34,除非客户确认，否则我们不会开始生产。,"Unless the client confirms, we will not start production.","Unless the client confirms, we will not start production."
+skill,gemma-4-e4b:q8_0,zh2en-05,zh2en,682.7,100.0,100.0,18.98,请在周三之前把报告发给我。,Please send me the report before Wednesday.,Please send me the report before Wednesday.
+skill,gemma-4-e4b:q8_0,zh2en-06,zh2en,1315.7,71.21,100.0,18.09,新版本修复了三个严重的漏洞，但还没有完全测试。,"The new version fixed three critical bugs, but it has not been fully tested.","The new version fixed three serious vulnerabilities, but has not been fully tested yet."
+skill,gemma-4-e4b:q8_0,zh2en-07,zh2en,1140.3,47.38,100.0,18.51,他没有反对这个计划，只是希望再等一周。,He did not oppose the plan; he just wanted to wait one more week.,"He didn't oppose this plan, just hoped to wait another week."
+skill,gemma-4-e4b:q8_0,zh2en-08,zh2en,1131.2,100.0,100.0,18.08,我们的团队将于五月十号搬到新办公室。,Our team will move to the new office on May 10th.,Our team will move to the new office on May 10th.
+skill,gemma-4-e4b:q8_0,zh2en-09,zh2en,1003.0,56.25,100.0,18.72,这次折扣只针对老客户，新客户不适用。,This discount is only for existing customers and does not apply to new ones.,"This discount is only for old customers, not applicable to new customers."
+skill,gemma-4-e4b:q8_0,zh2en-10,zh2en,1083.0,87.51,100.0,18.89,说实话，我觉得这个方案的风险太高了。,"Honestly, I think the risk of this plan is too high.","To be honest, I think the risk of this plan is too high."
+skill,gemma-4-e4b:q8_0,zh2en-11,zh2en,1202.5,91.44,100.0,18.65,李娜负责市场，王强负责技术。,"Li Na is in charge of marketing, and Wang Qiang is in charge of technology.","Li Na is in charge of marketing, Wang Qiang is in charge of technology."
+skill,gemma-4-e4b:q8_0,zh2en-12,zh2en,921.3,84.63,100.0,18.78,如果价格再涨，我们就考虑换供应商。,"If the price rises again, we will consider switching suppliers.","If the price rises again, we will consider changing suppliers."

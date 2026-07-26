@@ -1,0 +1,149 @@
+{
+  "description": "Small zh<->en evaluation set for the simultaneous-interpretation skill benchmark. References are natural human translations. Sentences stress numbers, dates, names, negation, and conditionals.",
+  "pairs": [
+    {
+      "id": "en2zh-01",
+      "direction": "en2zh",
+      "source": "The board will approve the 2026 budget next quarter.",
+      "reference": "董事会将在下个季度批准2026年的预算。"
+    },
+    {
+      "id": "en2zh-02",
+      "direction": "en2zh",
+      "source": "If revenue does not grow, we will not expand the team in March.",
+      "reference": "如果收入没有增长，我们三月份就不会扩充团队。"
+    },
+    {
+      "id": "en2zh-03",
+      "direction": "en2zh",
+      "source": "Sarah said the launch is delayed by two weeks due to a supply issue.",
+      "reference": "Sarah说由于供应问题，发布推迟了两周。"
+    },
+    {
+      "id": "en2zh-04",
+      "direction": "en2zh",
+      "source": "Our Q3 profit rose 15 percent compared with last year.",
+      "reference": "我们第三季度的利润比去年增长了15%。"
+    },
+    {
+      "id": "en2zh-05",
+      "direction": "en2zh",
+      "source": "Please review the contract before the meeting on Friday afternoon.",
+      "reference": "请在周五下午开会之前审阅这份合同。"
+    },
+    {
+      "id": "en2zh-06",
+      "direction": "en2zh",
+      "source": "The new model reduces latency, but it requires more memory.",
+      "reference": "新模型降低了延迟，但需要更多内存。"
+    },
+    {
+      "id": "en2zh-07",
+      "direction": "en2zh",
+      "source": "We cannot ship the product unless the safety test passes.",
+      "reference": "除非安全测试通过，否则我们无法发货。"
+    },
+    {
+      "id": "en2zh-08",
+      "direction": "en2zh",
+      "source": "John will present the results at 9 a.m. tomorrow in Room 204.",
+      "reference": "John将于明天上午9点在204房间汇报结果。"
+    },
+    {
+      "id": "en2zh-09",
+      "direction": "en2zh",
+      "source": "The discount applies only to orders over five hundred dollars.",
+      "reference": "该折扣仅适用于超过五百美元的订单。"
+    },
+    {
+      "id": "en2zh-10",
+      "direction": "en2zh",
+      "source": "Honestly, I think we should delay the decision until the data is clear.",
+      "reference": "老实说，我认为我们应该等数据明确之后再做决定。"
+    },
+    {
+      "id": "en2zh-11",
+      "direction": "en2zh",
+      "source": "She did not agree with the proposal, and she asked for more details.",
+      "reference": "她不同意这个提案，并要求提供更多细节。"
+    },
+    {
+      "id": "en2zh-12",
+      "direction": "en2zh",
+      "source": "The server crashed twice last night, so we rolled back the update.",
+      "reference": "服务器昨晚崩溃了两次，所以我们回滚了更新。"
+    },
+    {
+      "id": "zh2en-01",
+      "direction": "zh2en",
+      "source": "如果明天下雨，会议就改到下周一。",
+      "reference": "If it rains tomorrow, the meeting will be moved to next Monday."
+    },
+    {
+      "id": "zh2en-02",
+      "direction": "zh2en",
+      "source": "我们第二季度的销售额增长了百分之二十。",
+      "reference": "Our second-quarter sales grew by 20 percent."
+    },
+    {
+      "id": "zh2en-03",
+      "direction": "zh2en",
+      "source": "张总说这个项目预算不能超过一百万。",
+      "reference": "Mr. Zhang said the project budget cannot exceed one million."
+    },
+    {
+      "id": "zh2en-04",
+      "direction": "zh2en",
+      "source": "除非客户确认，否则我们不会开始生产。",
+      "reference": "Unless the client confirms, we will not start production."
+    },
+    {
+      "id": "zh2en-05",
+      "direction": "zh2en",
+      "source": "请在周三之前把报告发给我。",
+      "reference": "Please send me the report before Wednesday."
+    },
+    {
+      "id": "zh2en-06",
+      "direction": "zh2en",
+      "source": "新版本修复了三个严重的漏洞，但还没有完全测试。",
+      "reference": "The new version fixed three critical bugs, but it has not been fully tested."
+    },
+    {
+      "id": "zh2en-07",
+      "direction": "zh2en",
+      "source": "他没有反对这个计划，只是希望再等一周。",
+      "reference": "He did not oppose the plan; he just wanted to wait one more week."
+    },
+    {
+      "id": "zh2en-08",
+      "direction": "zh2en",
+      "source": "我们的团队将于五月十号搬到新办公室。",
+      "reference": "Our team will move to the new office on May 10th."
+    },
+    {
+      "id": "zh2en-09",
+      "direction": "zh2en",
+      "source": "这次折扣只针对老客户，新客户不适用。",
+      "reference": "This discount is only for existing customers and does not apply to new ones."
+    },
+    {
+      "id": "zh2en-10",
+      "direction": "zh2en",
+      "source": "说实话，我觉得这个方案的风险太高了。",
+      "reference": "Honestly, I think the risk of this plan is too high."
+    },
+    {
+      "id": "zh2en-11",
+      "direction": "zh2en",
+      "source": "李娜负责市场，王强负责技术。",
+      "reference": "Li Na is in charge of marketing, and Wang Qiang is in charge of technology."
+    },
+    {
+      "id": "zh2en-12",
+      "direction": "zh2en",
+      "source": "如果价格再涨，我们就考虑换供应商。",
+      "reference": "If the price rises again, we will consider switching suppliers."
+    }
+  ]
+}

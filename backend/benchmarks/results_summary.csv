@@ -1,0 +1,16 @@
+scope,metric,baseline,skill,delta
+overall,chrf_mean,74.8,75.47,0.67
+overall,latency_mean_ms,1008.4,1084.5,76.1
+overall,latency_p50_ms,1011.0,1038.5,27.5
+overall,latency_p95_ms,1225.9,1759.2,533.3
+overall,tokens_per_sec_mean,19.16,18.44,-0.72
+en2zh,chrf_mean,68.81,68.36,-0.45
+en2zh,latency_mean_ms,989.6,1027.4,37.8
+en2zh,latency_p50_ms,965.7,978.6,12.9
+en2zh,latency_p95_ms,1223.3,1419.5,196.2
+en2zh,tokens_per_sec_mean,19.33,18.86,-0.47
+zh2en,chrf_mean,80.79,82.59,1.8
+zh2en,latency_mean_ms,1027.3,1141.6,114.3
+zh2en,latency_p50_ms,1067.6,1094.0,26.4
+zh2en,latency_p95_ms,1241.4,1612.5,371.1
+zh2en,tokens_per_sec_mean,19.0,18.01,-0.99

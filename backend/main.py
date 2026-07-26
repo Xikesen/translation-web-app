@@ -26,7 +26,9 @@ from utils import now_ts
 
 
 app = FastAPI(title="Realtime Translation MVP")
-WEBRTC_HTML_PATH = Path(__file__).parent / "static" / "webrtc_client.html"
+STATIC_DIR = Path(__file__).parent / "static"
+WEBRTC_HTML_PATH = STATIC_DIR / "webrtc_client.html"
+GLASS_HTML_PATH = STATIC_DIR / "newfronted.html"
 GLOSSARY_PATH = Path(__file__).parent / "data" / "glossary.json"
 
 
@@ -87,6 +89,14 @@ async def webrtc_page() -> HTMLResponse:
     if not WEBRTC_HTML_PATH.exists():
         return HTMLResponse("<h3>webrtc client not found</h3>", status_code=404)
     return HTMLResponse(WEBRTC_HTML_PATH.read_text(encoding="utf-8"))
+
+
+@app.get("/", response_class=HTMLResponse)
+@app.get("/glass", response_class=HTMLResponse)
+async def glass_page() -> HTMLResponse:
+    if not GLASS_HTML_PATH.exists():
+        return HTMLResponse("<h3>glass client not found</h3>", status_code=404)
+    return HTMLResponse(GLASS_HTML_PATH.read_text(encoding="utf-8"))
 
 
 @app.post("/session/start", response_model=StartSessionResponse)
@@ -262,6 +272,22 @@ async def session_audio_ws(websocket: WebSocket, session_id: str) -> None:
 
             transcribed_chunks = await process_audio_chunk(session, bytes(chunk))
             for item in transcribed_chunks:
+                # Interim (non-final) ASR result: show live source text only,
+                # without committing or triggering a translation.
+                if not item.is_final:
+                    existing_speaker = session.speakers_by_key.get(item.speaker_id)
+                    await manager.broadcast(
+                        session_id,
+                        {
+                            "type": "partial_transcript",
+                            "speaker_label": existing_speaker.label if existing_speaker else item.speaker_id,
+                            "source_lang": item.source_lang,
+                            "source_text": item.source_text,
+                            "ts": now_ts(),
+                        },
+                    )
+                    continue
+
                 events, speaker, translation_source_text = prepare_utterance(
                     session=session,
                     speaker_key=item.speaker_id,

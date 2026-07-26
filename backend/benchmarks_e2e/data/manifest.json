@@ -1,0 +1,63 @@
+{
+  "description": "Small end-to-end (audio) benchmark set. Each sample is synthesized to 16kHz mono PCM wav with macOS `say` (see generate_samples.py), streamed through the real /ws_audio pipeline (VAD -> Whisper ASR -> translation), then scored on WER/CER (ASR), chrF (translation), and full-pipeline latency. 'text' is the reference transcript; 'reference_translation' is the reference target.",
+  "audio": {
+    "sample_rate": 16000,
+    "channels": 1,
+    "format": "s16le"
+  },
+  "voices": {
+    "en": "Samantha",
+    "zh": "Tingting"
+  },
+  "samples": [
+    {
+      "id": "en-01",
+      "lang": "en",
+      "target_lang": "zh",
+      "text": "The meeting will start at nine tomorrow morning.",
+      "reference_translation": "会议将于明天上午九点开始。"
+    },
+    {
+      "id": "en-02",
+      "lang": "en",
+      "target_lang": "zh",
+      "text": "Our revenue grew fifteen percent this quarter.",
+      "reference_translation": "我们本季度的收入增长了百分之十五。"
+    },
+    {
+      "id": "en-03",
+      "lang": "en",
+      "target_lang": "zh",
+      "text": "Please send me the report before Friday.",
+      "reference_translation": "请在周五之前把报告发给我。"
+    },
+    {
+      "id": "en-04",
+      "lang": "en",
+      "target_lang": "zh",
+      "text": "We cannot ship the product unless the test passes.",
+      "reference_translation": "除非测试通过，否则我们无法发货。"
+    },
+    {
+      "id": "zh-01",
+      "lang": "zh",
+      "target_lang": "en",
+      "text": "如果明天下雨，会议就取消。",
+      "reference_translation": "If it rains tomorrow, the meeting will be canceled."
+    },
+    {
+      "id": "zh-02",
+      "lang": "zh",
+      "target_lang": "en",
+      "text": "我们的团队下个月搬到新办公室。",
+      "reference_translation": "Our team will move to the new office next month."
+    },
+    {
+      "id": "zh-03",
+      "lang": "zh",
+      "target_lang": "en",
+      "text": "这个项目的预算不能超过一百万。",
+      "reference_translation": "The budget for this project cannot exceed one million."
+    }
+  ]
+}

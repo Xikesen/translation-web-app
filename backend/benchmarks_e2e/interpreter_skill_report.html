@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>同声传译 Skill — 翻译性能评测报告</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #16181d; --muted: #6b7280; --line: #e5e7eb;
+    --neutral: #9ca3af; --info: #2563eb; --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+    --chip: #f3f4f6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 24px; margin: 0; }
+  h2 { font-size: 19px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 15px; margin: 18px 0 8px; color: #374151; }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .chip { display: inline-block; background: var(--chip); color: #374151; font-size: 12px;
+    padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 16px 0; }
+  .stat { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .stat .v { font-size: 22px; font-weight: 650; }
+  .stat .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .success { color: var(--success); } .warning { color: var(--warning); }
+  .danger { color: var(--danger); } .info { color: var(--info); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .bar-row { display: grid; grid-template-columns: 92px 1fr 62px; align-items: center; gap: 10px; margin: 7px 0; }
+  .bar-row .cat { font-size: 13px; color: #374151; text-align: right; }
+  .track { background: #f1f3f5; border-radius: 6px; height: 20px; overflow: hidden; position: relative; }
+  .fill { height: 100%; border-radius: 6px; }
+  .bar-row .val { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .legend { font-size: 12px; color: var(--muted); margin: 4px 0 0; display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+  th, td { padding: 7px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.good td { background: #f0fdf4; } tr.bad td { background: #fef2f2; }
+  .callout { border: 1px solid var(--line); border-left: 3px solid var(--neutral); border-radius: 8px;
+    padding: 12px 14px; margin: 14px 0; background: #fafafa; }
+  .callout.info { border-left-color: var(--info); } .callout.success { border-left-color: var(--success); }
+  .callout.warning { border-left-color: var(--warning); }
+  .callout .t { font-weight: 650; margin-bottom: 4px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .card .h { font-weight: 650; font-size: 13px; margin-bottom: 6px; }
+  .card .b { font-size: 13px; color: #374151; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
+  @media print { .no-print { display: none; } body { font-size: 12px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="row">
+    <h1>同声传译 Skill — 翻译性能评测报告</h1>
+    <span style="flex:1"></span>
+    <span class="chip">gemma-4-e4b:q8_0</span>
+  </div>
+  <p class="muted">在实时翻译后端 <b>ooni-glass</b> 上评测「同声传译人格提示词」，包含两部分：①文本翻译对比评测；②端到端音频评测（真实 ASR→翻译链路）。裁判模型 qwen3:8b。</p>
+  <p class="muted no-print">提示：用浏览器打开本文件即可查看；<b>Cmd/Ctrl + P → 另存为 PDF</b> 可导出分享。</p>
+
+  <!-- ============ PART 2 highlight up top: E2E ============ -->
+  <h2>一、端到端评测：音频 → ASR → 翻译</h2>
+  <p class="muted">链路：<b>/ws_audio → WebRTC VAD → faster-whisper small (CPU int8) → 翻译管理器 + 同传 skill → WS 事件</b>。7 条 macOS <code>say</code> 合成音频（16kHz 单声道，EN 4 / ZH 3），实时节奏推流。数据来源：backend/benchmarks_e2e。</p>
+
+  <div class="stats">
+    <div class="stat"><div class="v">26.9%</div><div class="l">ASR 平均错误率 (WER/CER)</div></div>
+    <div class="stat"><div class="v success">63.2</div><div class="l">翻译 chrF（字面）</div></div>
+    <div class="stat"><div class="v success">79.9</div><div class="l">语义分 judge (qwen3)</div></div>
+    <div class="stat"><div class="v warning">8.7s</div><div class="l">尾延迟均值（端点→译文）</div></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h3>ASR 错误率（越低越好）</h3>
+      <div class="bar-row"><div class="cat">Overall</div><div class="track"><div class="fill" style="width:53.8%;background:var(--warning)"></div></div><div class="val">26.9%</div></div>
+      <div class="bar-row"><div class="cat">EN→ZH (WER)</div><div class="track"><div class="fill" style="width:31.6%;background:var(--warning)"></div></div><div class="val">15.8%</div></div>
+      <div class="bar-row"><div class="cat">ZH→EN (CER)</div><div class="track"><div class="fill" style="width:83.6%;background:var(--warning)"></div></div><div class="val">41.8%</div></div>
+      <p class="muted">中文 CER 偏高主因：数字/量词误听（「一百万」→「100%」）与逐字空格。</p>
+    </div>
+    <div>
+      <h3>翻译质量：chrF vs 语义分</h3>
+      <div class="bar-row"><div class="cat">Overall</div><div class="track"><div class="fill" style="width:63.2%;background:var(--info)"></div></div><div class="val">63.2</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:79.9%;background:var(--success)"></div></div><div class="val">79.9</div></div>
+      <div class="bar-row"><div class="cat">EN→ZH</div><div class="track"><div class="fill" style="width:49.7%;background:var(--info)"></div></div><div class="val">49.7</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:91.3%;background:var(--success)"></div></div><div class="val">91.3</div></div>
+      <div class="bar-row"><div class="cat">ZH→EN</div><div class="track"><div class="fill" style="width:81.1%;background:var(--info)"></div></div><div class="val">81.1</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:64.7%;background:var(--success)"></div></div><div class="val">64.7</div></div>
+      <p class="legend"><span><i style="background:var(--info)"></i>chrF</span><span><i style="background:var(--success)"></i>judge (qwen3)</span></p>
+    </div>
+  </div>
+
+  <h3>全链路尾延迟（说话结束 → 最终译文，均值秒；p95 ≈ 11.2s）</h3>
+  <div class="bar-row"><div class="cat">Overall</div><div class="track"><div class="fill" style="width:75%;background:var(--warning)"></div></div><div class="val">8.65s</div></div>
+  <div class="bar-row"><div class="cat">EN→ZH</div><div class="track"><div class="fill" style="width:64.6%;background:var(--warning)"></div></div><div class="val">7.45s</div></div>
+  <div class="bar-row"><div class="cat">ZH→EN</div><div class="track"><div class="fill" style="width:89%;background:var(--warning)"></div></div><div class="val">10.26s</div></div>
+  <p class="muted">端点静音提交 + CPU Whisper 解码 + Ollama 翻译串行。此为 CPU(int8) 数值，换 GPU/Metal 可大幅下降。</p>
+
+  <h3>逐句结果</h3>
+  <table>
+    <thead><tr>
+      <th>样本</th><th>方向</th><th class="num">ASR 错误</th><th class="num">chrF</th><th class="num">judge</th><th class="num">尾延迟</th><th>ASR 转写</th>
+    </tr></thead>
+    <tbody>
+      <tr class="good"><td>en-01</td><td>EN→ZH</td><td class="num">12.5%</td><td class="num">32.0</td><td class="num">95</td><td class="num">7.0s</td><td>The meeting will start at 9 tomorrow morning.</td></tr>
+      <tr class="good"><td>en-02</td><td>EN→ZH</td><td class="num">28.6%</td><td class="num">34.5</td><td class="num">95</td><td class="num">5.1s</td><td>Our revenue grew 15 % this quarter.</td></tr>
+      <tr class="good"><td>en-03</td><td>EN→ZH</td><td class="num">0.0%</td><td class="num">66.3</td><td class="num">95</td><td class="num">6.2s</td><td>Please send me the report before Friday.</td></tr>
+      <tr><td>en-04</td><td>EN→ZH</td><td class="num">22.2%</td><td class="num">66.0</td><td class="num">80</td><td class="num">11.5s</td><td>We cannot ship the product unless the test pass. services.</td></tr>
+      <tr class="good"><td>zh-01</td><td>ZH→EN</td><td class="num">18.2%</td><td class="num">92.3</td><td class="num">99</td><td class="num">10.3s</td><td>如果明天下雨，會議就…取消</td></tr>
+      <tr class="good"><td>zh-02</td><td>ZH→EN</td><td class="num">21.4%</td><td class="num">60.7</td><td class="num">95</td><td class="num">10.5s</td><td>我们的团队下个月搬到新办公室工工室</td></tr>
+      <tr class="bad"><td>zh-03</td><td>ZH→EN</td><td class="num">85.7%</td><td class="num">90.5</td><td class="num">0</td><td class="num">10.0s</td><td>這個項目的預算不能超過100% 100萬</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warning">
+    <div class="t">关键发现：chrF 会骗人，judge 抓得住语义硬错</div>
+    zh-03 的 chrF 高达 90.5 看似很好，但独立裁判 qwen3 给 <b>0 分</b>——因为 ASR 把「一百万」误听为「100%」，译文语义完全错。端到端评测需要「字面 + 语义」双指标，只看 chrF 会漏掉致命错误。
+  </div>
+
+  <hr />
+
+  <!-- ============ PART 1: text benchmark ============ -->
+  <h2>二、文本翻译评测（skill vs baseline）</h2>
+  <p class="muted">只改一个变量——提示词。两种条件用<b>完全相同的模型和解码参数</b>（temperature=0），24 句中英互译（EN→ZH 12 / ZH→EN 12）。数据来源：backend/benchmarks。</p>
+
+  <div class="stats">
+    <div class="stat"><div class="v success">+0.67</div><div class="l">chrF 整体提升 (74.8→75.5)</div></div>
+    <div class="stat"><div class="v success">+1.8</div><div class="l">chrF 中译英提升 (zh→en)</div></div>
+    <div class="stat"><div class="v">≈持平</div><div class="l">语义分 judge (qwen3 裁判)</div></div>
+    <div class="stat"><div class="v warning">+23ms</div><div class="l">平均延迟开销（热启动）</div></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h3>chrF（字面贴合度，越高越好）</h3>
+      <div class="bar-row"><div class="cat">Overall</div><div class="track"><div class="fill" style="width:74.8%;background:var(--neutral)"></div></div><div class="val">74.8</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:75.5%;background:var(--info)"></div></div><div class="val">75.5</div></div>
+      <div class="bar-row"><div class="cat">EN→ZH</div><div class="track"><div class="fill" style="width:68.8%;background:var(--neutral)"></div></div><div class="val">68.8</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:68.4%;background:var(--info)"></div></div><div class="val">68.4</div></div>
+      <div class="bar-row"><div class="cat">ZH→EN</div><div class="track"><div class="fill" style="width:80.8%;background:var(--neutral)"></div></div><div class="val">80.8</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:82.6%;background:var(--info)"></div></div><div class="val">82.6</div></div>
+      <p class="legend"><span><i style="background:var(--neutral)"></i>baseline</span><span><i style="background:var(--info)"></i>skill</span></p>
+    </div>
+    <div>
+      <h3>LLM 语义评分（裁判 = qwen3:8b，越高越好）</h3>
+      <div class="bar-row"><div class="cat">Overall</div><div class="track"><div class="fill" style="width:96.7%;background:var(--neutral)"></div></div><div class="val">96.67</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:96.9%;background:var(--success)"></div></div><div class="val">96.88</div></div>
+      <div class="bar-row"><div class="cat">EN→ZH</div><div class="track"><div class="fill" style="width:96.7%;background:var(--neutral)"></div></div><div class="val">96.67</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:97.1%;background:var(--success)"></div></div><div class="val">97.08</div></div>
+      <div class="bar-row"><div class="cat">ZH→EN</div><div class="track"><div class="fill" style="width:96.7%;background:var(--neutral)"></div></div><div class="val">96.67</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:96.7%;background:var(--success)"></div></div><div class="val">96.67</div></div>
+      <p class="legend"><span><i style="background:var(--neutral)"></i>baseline</span><span><i style="background:var(--success)"></i>skill</span></p>
+    </div>
+  </div>
+
+  <h3>延迟开销（墙钟 ms，热启动 --repeats 3，越低越好）</h3>
+  <div class="grid2">
+    <div>
+      <p class="muted" style="margin:0">平均延迟</p>
+      <div class="bar-row"><div class="cat">Overall</div><div class="track"><div class="fill" style="width:77.7%;background:var(--neutral)"></div></div><div class="val">954.8</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:79.6%;background:var(--warning)"></div></div><div class="val">978.0</div></div>
+      <div class="bar-row"><div class="cat">EN→ZH</div><div class="track"><div class="fill" style="width:76.0%;background:var(--neutral)"></div></div><div class="val">933.3</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:77.7%;background:var(--warning)"></div></div><div class="val">953.8</div></div>
+      <div class="bar-row"><div class="cat">ZH→EN</div><div class="track"><div class="fill" style="width:79.5%;background:var(--neutral)"></div></div><div class="val">976.2</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:81.6%;background:var(--warning)"></div></div><div class="val">1002.3</div></div>
+    </div>
+    <div>
+      <p class="muted" style="margin:0">p95 延迟</p>
+      <div class="bar-row"><div class="cat">Overall</div><div class="track"><div class="fill" style="width:92.1%;background:var(--neutral)"></div></div><div class="val">1154.4</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:97.9%;background:var(--warning)"></div></div><div class="val">1227.8</div></div>
+      <div class="bar-row"><div class="cat">EN→ZH</div><div class="track"><div class="fill" style="width:88.6%;background:var(--neutral)"></div></div><div class="val">1111.1</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:90.0%;background:var(--warning)"></div></div><div class="val">1128.8</div></div>
+      <div class="bar-row"><div class="cat">ZH→EN</div><div class="track"><div class="fill" style="width:91.9%;background:var(--neutral)"></div></div><div class="val">1153.1</div></div>
+      <div class="bar-row"><div class="cat"></div><div class="track"><div class="fill" style="width:99.9%;background:var(--warning)"></div></div><div class="val">1253.4</div></div>
+    </div>
+  </div>
+  <p class="muted">skill 提示更长，整体均值 +23ms、p95 +73ms；生成速度几乎不变。</p>
+
+  <hr />
+
+  <h2>结论</h2>
+  <div class="cards">
+    <div class="card"><div class="h success">语义无损</div><div class="b">独立裁判 qwen3 下，skill 与 baseline 语义分基本持平 (~96.7)，意思都对。</div></div>
+    <div class="card"><div class="h info">中译英更好</div><div class="b">zh→en 字面质量 +1.8；否定/数字类句子保真更稳。</div></div>
+    <div class="card"><div class="h warning">代价很小</div><div class="b">延迟均值仅 +23ms（热启动），提示更长是主因。</div></div>
+  </div>
+  <p class="muted" style="margin-top:16px">
+    端到端瓶颈在 ASR（中文数字/量词）与 CPU 推理延迟，而非翻译提示词。下一步建议：中文 ASR 用更大模型或加数字后处理、Whisper 上 GPU/Metal 降延迟、扩充长难句与带上下文的连续片段更贴近真实同传。
+  </p>
+
+</div>
+</body>
+</html>

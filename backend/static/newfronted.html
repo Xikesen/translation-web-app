@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR 翻译眼镜演示 (HUD Demo)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #11111b;
+            color: #cdd6f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: #89b4fa; margin-bottom: 10px; }
+        .subtitle { color: #a6adc8; font-size: 14px; margin-bottom: 40px; }
+
+        /* --- AR 眼镜 UI 设计 --- */
+        .ar-simulator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .lens {
+            width: 300px;
+            height: 200px;
+            border: 10px solid #313244;
+            border-radius: 20px 20px 80px 80px;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.5) 100%);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .lens::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0) 100%);
+            transform: rotate(45deg);
+            pointer-events: none;
+        }
+
+        .bridge {
+            width: 40px;
+            height: 10px;
+            background-color: #313244;
+            margin-top: -120px;
+            border-radius: 5px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        }
+
+        /* HUD 投影字幕样式（滚动字幕） */
+        .hud-stack {
+            position: absolute;
+            top: 12px;
+            left: 5%;
+            width: 90%;
+            height: calc(100% - 24px);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .hud-scroll {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            overflow-y: auto;
+            max-height: 100%;
+            scrollbar-width: none;         /* Firefox */
+            scroll-behavior: smooth;
+        }
+        .hud-scroll::-webkit-scrollbar { display: none; }  /* WebKit */
+        .hud-line {
+            text-align: left;
+            font-family: "Courier New", Courier, monospace;
+            animation: fadeIn 0.25s ease;
+        }
+        .hud-line .src {
+            color: #94e2d5;
+            font-size: 11px;
+            opacity: 0.7;
+            text-shadow: 0 0 4px rgba(148,226,213,0.5), 1px 1px 2px #000;
+        }
+        .hud-line .dst {
+            color: #a6e3a1;
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1.3;
+            text-shadow: 0 0 5px #a6e3a1, 0 0 10px #a6e3a1, 1px 1px 2px #000;
+        }
+        /* 正在识别/翻译中的活动行 */
+        .hud-line.live .dst { color: #f9e2af; text-shadow: 0 0 5px #f9e2af, 1px 1px 2px #000; }
+        .hud-line.live .src { opacity: 0.95; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+        /* --- 控制面板样式 --- */
+        .control-panel {
+            background-color: #1e1e2e;
+            padding: 25px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .control-group { margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .label { font-size: 12px; color: #a6adc8; width: 100px; }
+
+        button {
+            background-color: #89b4fa;
+            color: #11111b;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:hover { background-color: #74c7ec; }
+        button:disabled { background-color: #45475a; color: #7f849c; cursor: not-allowed; }
+        .recording { background-color: #f38ba8 !important; color: white !important; animation: pulse 1s infinite; }
+
+        select {
+            background-color: #313244; color: #cdd6f4; border: 1px solid #45475a;
+            padding: 8px 10px; border-radius: 6px; font-size: 14px;
+        }
+        input[type="file"] { color: #cdd6f4; font-size: 14px; }
+
+        .dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#6c7086; margin-right:6px; vertical-align:middle; }
+        .dot.on { background:#a6e3a1; box-shadow:0 0 6px #a6e3a1; }
+        .dot.busy { background:#f9e2af; box-shadow:0 0 6px #f9e2af; }
+        .dot.err { background:#f38ba8; box-shadow:0 0 6px #f38ba8; }
+
+        /* 后台日志 */
+        .dev-log {
+            background-color: #000;
+            color: #bac2de;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 15px;
+            min-height: 40px;
+            max-height: 160px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <h1>🕶️ Project Glass - AR 翻译器</h1>
+    <div class="subtitle">第一人称视角 HUD 演示 · 实时流式（WebSocket → FastAPI → ASR → 翻译）</div>
+
+    <div class="ar-simulator">
+        <div class="lens left-lens"></div>
+        <div class="bridge"></div>
+        <div class="lens right-lens">
+            <div class="hud-stack">
+                <div class="hud-scroll" id="hudScroll">
+                    <div class="hud-line"><div class="dst">Awaiting Voice Input…</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <div class="control-group">
+            <div class="label">🌐 目标语言</div>
+            <select id="targetLang">
+                <option value="zh">中文 (zh)</option>
+                <option value="en" selected>English (en)</option>
+                <option value="fr">Français (fr)</option>
+                <option value="es">Español (es)</option>
+            </select>
+            <span><span class="dot" id="connDot"></span><span id="statusText" style="color:#a6adc8;font-size:14px;">就绪</span></span>
+        </div>
+
+        <div class="control-group">
+            <div class="label">🔴 实时麦克风</div>
+            <button id="recordBtn">🎤 开始翻译</button>
+            <button id="clearBtn" style="background-color:#45475a;color:#cdd6f4;">🧹 清屏</button>
+            <span style="color:#6c7086;font-size:12px;">点一次开始，持续翻译并滚动，再点停止</span>
+        </div>
+
+        <div class="control-group">
+            <div class="label">📁 上传录音</div>
+            <input type="file" id="fileInput" accept="audio/*">
+            <button id="uploadBtn">解析音频</button>
+        </div>
+
+        <div class="dev-log" id="devLog">[系统日志] 等待连接至翻译引擎...</div>
+    </div>
+
+    <script>
+        // ---- 后端协议常量（与 backend 对齐）----
+        const SAMPLE_RATE = 16000;
+        const FRAME_MS = 20;
+        const FRAME_SAMPLES = SAMPLE_RATE * FRAME_MS / 1000;   // 320
+        const FRAME_BYTES = FRAME_SAMPLES * 2;                  // 640
+        const TRAILING_SILENCE_MS = 1400;                      // 触发端点提交
+        const FINALIZE_WAIT_MS = 16000;                        // 等最终译文最长时间
+
+        const MAX_HUD_LINES = 60;   // 眼镜界面保留的历史行数（滚动）
+
+        const recordBtn = document.getElementById('recordBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const statusText = document.getElementById('statusText');
+        const hudScroll = document.getElementById('hudScroll');
+        const devLog = document.getElementById('devLog');
+        const targetLangSel = document.getElementById('targetLang');
+        const connDot = document.getElementById('connDot');
+
+        const state = {
+            ws: null,
+            sessionId: null,
+            stream: null,
+            audioCtx: null,
+            sourceNode: null,
+            processor: null,
+            leftover: new Uint8Array(0),   // 分帧余数
+            running: false,                // 会话是否常驻运行中
+            liveEl: null,                  // 当前"正在识别/翻译"的活动行
+            placeholderCleared: false,
+            gotTranslation: false,
+            finalizeTimer: null,
+            busy: false,
+        };
+
+        function log(msg) {
+            const ts = new Date().toLocaleTimeString();
+            devLog.textContent = `[${ts}] ${msg}\n` + devLog.textContent;
+        }
+        function setStatus(text, dotClass) {
+            statusText.textContent = text;
+            connDot.className = 'dot' + (dotClass ? ' ' + dotClass : '');
+        }
+
+        // ---------- 滚动字幕 HUD ----------
+        function autoScroll() { hudScroll.scrollTop = hudScroll.scrollHeight; }
+        function clearPlaceholder() {
+            if (!state.placeholderCleared) { hudScroll.innerHTML = ''; state.placeholderCleared = true; }
+        }
+        function trimLines() {
+            while (hudScroll.children.length > MAX_HUD_LINES) hudScroll.removeChild(hudScroll.firstChild);
+        }
+        function makeLine(src, dst, live) {
+            const el = document.createElement('div');
+            el.className = 'hud-line' + (live ? ' live' : '');
+            const s = document.createElement('div'); s.className = 'src'; s.textContent = src || '';
+            const d = document.createElement('div'); d.className = 'dst'; d.textContent = dst || '';
+            el.appendChild(s); el.appendChild(d);
+            return el;
+        }
+        // 更新（或创建）底部活动行：显示正在识别的原文 / 临时状态
+        function updateLiveLine(source, dst) {
+            clearPlaceholder();
+            if (!state.liveEl) { state.liveEl = makeLine(source, dst || '…', true); hudScroll.appendChild(state.liveEl); }
+            else {
+                state.liveEl.querySelector('.src').textContent = source || '';
+                if (dst !== undefined) state.liveEl.querySelector('.dst').textContent = dst || '…';
+            }
+            trimLines(); autoScroll();
+        }
+        // 提交一条最终译文为固定历史行（并回收活动行）
+        function commitLine(source, translated) {
+            clearPlaceholder();
+            if (state.liveEl) { hudScroll.removeChild(state.liveEl); state.liveEl = null; }
+            hudScroll.appendChild(makeLine(source, translated, false));
+            trimLines(); autoScroll();
+        }
+        function clearHud() {
+            hudScroll.innerHTML = '<div class="hud-line"><div class="dst">Awaiting Voice Input…</div></div>';
+            state.placeholderCleared = false; state.liveEl = null;
+        }
+
+        // ---------- PCM 工具 ----------
+        function downsampleTo16k(float32, inputRate) {
+            if (inputRate === SAMPLE_RATE) return float32;
+            const ratio = inputRate / SAMPLE_RATE;
+            const outLen = Math.floor(float32.length / ratio);
+            const out = new Float32Array(outLen);
+            let i = 0, j = 0;
+            while (i < outLen) {
+                const nextJ = Math.floor((i + 1) * ratio);
+                let sum = 0, count = 0;
+                for (; j < nextJ && j < float32.length; j++) { sum += float32[j]; count++; }
+                out[i] = count > 0 ? sum / count : 0;
+                i++;
+            }
+            return out;
+        }
+        function floatToInt16(float32) {
+            const out = new Int16Array(float32.length);
+            for (let i = 0; i < float32.length; i++) {
+                const s = Math.max(-1, Math.min(1, float32[i]));
+                out[i] = s < 0 ? s * 32768 : s * 32767;
+            }
+            return out;
+        }
+        function concatBytes(a, b) {
+            const out = new Uint8Array(a.length + b.length);
+            out.set(a, 0); out.set(b, a.length);
+            return out;
+        }
+        // 累积字节，按精确 640B 帧发送，余数留到下次
+        function pushPcmBytes(bytes) {
+            let buf = concatBytes(state.leftover, bytes);
+            let off = 0;
+            while (buf.length - off >= FRAME_BYTES) {
+                if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                    state.ws.send(buf.slice(off, off + FRAME_BYTES));
+                }
+                off += FRAME_BYTES;
+            }
+            state.leftover = buf.slice(off);
+        }
+        function sendSilence(ms) {
+            const frames = Math.round(ms / FRAME_MS);
+            const silent = new Uint8Array(FRAME_BYTES);
+            for (let i = 0; i < frames; i++) {
+                if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(silent);
+            }
+        }
+
+        // ---------- 会话 / WebSocket ----------
+        async function createSession(targetLang) {
+            const resp = await fetch('/session/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_lang: targetLang }),
+            });
+            if (!resp.ok) throw new Error('session/start 失败');
+            return resp.json();
+        }
+        async function stopSession() {
+            if (!state.sessionId) return;
+            try { await fetch(`/session/${state.sessionId}/stop`, { method: 'POST' }); } catch (e) {}
+        }
+
+        function openWs(sessionId) {
+            return new Promise((resolve, reject) => {
+                const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+                const ws = new WebSocket(`${scheme}://${location.host}/ws_audio/${sessionId}`);
+                ws.binaryType = 'arraybuffer';
+                ws.onopen = () => resolve(ws);
+                ws.onerror = (e) => reject(new Error('WebSocket 连接失败'));
+                ws.onmessage = (msg) => {
+                    let ev;
+                    try { ev = JSON.parse(msg.data); } catch { return; }
+                    applyEvent(ev);
+                };
+                ws.onclose = () => { if (state.ws === ws) state.ws = null; };
+            });
+        }
+
+        function applyEvent(ev) {
+            switch (ev.type) {
+                case 'audio_connected':
+                    log('已连接翻译引擎 · session ' + (ev.session_id || '').slice(0, 8));
+                    break;
+                case 'partial_transcript':
+                    // 实时中间转写：边说边出原文（活动行，黄色，未提交）
+                    updateLiveLine((ev.source_text || '') + ' …');
+                    break;
+                case 'transcript':
+                    // 最终原文：更新活动行原文，等待译文
+                    updateLiveLine(ev.source_text || '', '翻译中…');
+                    log(`原文[${ev.source_lang || '?'}] ${ev.source_text}`);
+                    break;
+                case 'translation': {
+                    // 每条译文自带 source_text + translated_text，直接提交为一行历史（滚动）
+                    state.gotTranslation = true;
+                    commitLine(ev.source_text || '', ev.translated_text || '');
+                    const lat = (typeof ev.latency_ms === 'number') ? `${ev.latency_ms.toFixed(0)}ms` : '-';
+                    const route = ev.route || '-';
+                    log(`译文[${ev.target_lang}] ${ev.translated_text}   ⟨route:${route} · ${lat}⟩`);
+                    break;
+                }
+                case 'error':
+                    log('⚠️ ' + (ev.message || 'error'));
+                    break;
+                case 'session_end':
+                    log('会话结束: ' + (ev.reason || ''));
+                    if (state.running) {
+                        // 服务端主动结束（如达到最大时长）：复位为可重新开始
+                        state.running = false;
+                        stopMic();
+                        if (state.ws) { try { state.ws.close(); } catch {} state.ws = null; }
+                        state.sessionId = null;
+                        recordBtn.classList.remove('recording');
+                        recordBtn.textContent = '🎤 开始翻译';
+                        recordBtn.disabled = false;
+                        setControlsEnabled(true);
+                        setStatus('会话已结束（' + (ev.reason || '') + '），可重新开始', 'busy');
+                    }
+                    break;
+            }
+        }
+
+        // ---------- 麦克风采集 ----------
+        async function startMic() {
+            state.stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const inRate = state.audioCtx.sampleRate;
+            state.sourceNode = state.audioCtx.createMediaStreamSource(state.stream);
+            state.processor = state.audioCtx.createScriptProcessor(4096, 1, 1);
+            state.sourceNode.connect(state.processor);
+            state.processor.connect(state.audioCtx.destination);
+            state.processor.onaudioprocess = (e) => {
+                if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+                const input = e.inputBuffer.getChannelData(0);
+                const pcm16k = downsampleTo16k(input, inRate);
+                pushPcmBytes(new Uint8Array(floatToInt16(pcm16k).buffer));
+            };
+        }
+        function stopMic() {
+            if (state.processor) { state.processor.disconnect(); state.processor.onaudioprocess = null; state.processor = null; }
+            if (state.sourceNode) { state.sourceNode.disconnect(); state.sourceNode = null; }
+            if (state.audioCtx) { state.audioCtx.close().catch(() => {}); state.audioCtx = null; }
+            if (state.stream) { state.stream.getTracks().forEach(t => t.stop()); state.stream = null; }
+        }
+
+        // ---------- 结束 & 清理（仅上传解析结束时使用） ----------
+        async function finalizeAndClose(reason) {
+            // 冲掉余数 + 补尾部静音触发端点提交
+            state.leftover = new Uint8Array(0);
+            sendSilence(TRAILING_SILENCE_MS);
+            setStatus('生成译文中…', 'busy');
+            // 等最终译文（或超时）后关闭
+            const closeNow = async () => {
+                if (state.finalizeTimer) { clearInterval(state.finalizeTimer); state.finalizeTimer = null; }
+                if (state.ws) { try { state.ws.close(); } catch {} state.ws = null; }
+                await stopSession();
+                state.sessionId = null;
+                state.busy = false;
+                setStatus('就绪');
+                setControlsEnabled(true);
+            };
+            const t0 = Date.now();
+            state.gotTranslation = false;
+            state.finalizeTimer = setInterval(() => {
+                // 收到译文后再宽限 1.2s，确保多段都到齐
+                if (state.gotTranslation && Date.now() - t0 > 1200) closeNow();
+                else if (Date.now() - t0 > FINALIZE_WAIT_MS) closeNow();
+            }, 250);
+        }
+
+        function setControlsEnabled(enabled) {
+            uploadBtn.disabled = !enabled;
+            targetLangSel.disabled = !enabled;
+        }
+
+        // ---------- 开始 / 停止：常驻会话，连续翻译并滚动 ----------
+        async function startTranslating() {
+            if (state.running || state.busy) return;
+            state.busy = true;
+            setControlsEnabled(false);
+            recordBtn.disabled = true;
+            try {
+                setStatus('连接中…', 'busy');
+                const session = await createSession(targetLangSel.value);
+                state.sessionId = session.session_id;
+                state.leftover = new Uint8Array(0);
+                state.ws = await openWs(state.sessionId);
+                await startMic();
+                state.running = true;
+                setStatus('实时翻译中…', 'on');
+                updateLiveLine('Listening…');
+                recordBtn.classList.add('recording');
+                recordBtn.textContent = '⏹ 停止翻译';
+            } catch (e) {
+                log('❌ 启动失败: ' + (e.message || e));
+                setStatus('错误', 'err');
+                stopMic();
+                if (state.ws) { try { state.ws.close(); } catch {} state.ws = null; }
+                await stopSession();
+                state.sessionId = null;
+                state.running = false;
+                setControlsEnabled(true);
+            } finally {
+                state.busy = false;
+                recordBtn.disabled = false;
+            }
+        }
+
+        async function stopTranslating() {
+            if (!state.running) return;
+            state.running = false;
+            recordBtn.classList.remove('recording');
+            recordBtn.textContent = '🎤 开始翻译';
+            recordBtn.disabled = true;
+            setStatus('收尾中…', 'busy');
+            stopMic();
+            // 补尾部静音，冲出最后一句，再等译文到齐后关闭
+            await finalizeAndClose('mic_stop');
+            // finalizeAndClose 会在译文到齐/超时后复位控件与状态
+            const wait = setInterval(() => {
+                if (!state.finalizeTimer) { recordBtn.disabled = false; clearInterval(wait); }
+            }, 200);
+        }
+
+        recordBtn.addEventListener('click', () => {
+            if (state.running) stopTranslating();
+            else startTranslating();
+        });
+        clearBtn.addEventListener('click', clearHud);
+
+        // ---------- 文件上传（解码 → 重采样 → 流式推送） ----------
+        async function handleUpload() {
+            if (state.busy || state.running) return;
+            if (!fileInput.files || fileInput.files.length === 0) { alert('请先选择音频文件！'); return; }
+            const file = fileInput.files[0];
+            state.busy = true;
+            setControlsEnabled(false);
+            recordBtn.disabled = true;
+            try {
+                setStatus('解码音频…', 'busy');
+                updateLiveLine('Decoding…');
+                const arrayBuf = await file.arrayBuffer();
+                const decodeCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const audioBuf = await decodeCtx.decodeAudioData(arrayBuf);
+                const inRate = audioBuf.sampleRate;
+                const ch0 = audioBuf.getChannelData(0); // 取第一声道
+                decodeCtx.close().catch(() => {});
+                const pcm16k = downsampleTo16k(ch0, inRate);
+                const int16 = floatToInt16(pcm16k);
+                const allBytes = new Uint8Array(int16.buffer);
+
+                setStatus('连接中…', 'busy');
+                const session = await createSession(targetLangSel.value);
+                state.sessionId = session.session_id;
+                state.leftover = new Uint8Array(0);
+                state.ws = await openWs(state.sessionId);
+                setStatus('推流中…', 'on');
+                updateLiveLine('Translating…');
+
+                // 按 640B 帧、20ms 节奏推送，贴近实时端点行为
+                let off = 0;
+                while (off < allBytes.length) {
+                    const end = Math.min(off + FRAME_BYTES, allBytes.length);
+                    let frame = allBytes.slice(off, end);
+                    if (frame.length < FRAME_BYTES) {
+                        const padded = new Uint8Array(FRAME_BYTES); padded.set(frame, 0); frame = padded;
+                    }
+                    if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(frame);
+                    off += FRAME_BYTES;
+                    await new Promise(r => setTimeout(r, FRAME_MS));
+                }
+                await finalizeAndClose('upload_done');
+            } catch (e) {
+                log('❌ 上传解析失败: ' + (e.message || e));
+                setStatus('错误', 'err');
+                updateLiveLine('System Error');
+                if (state.ws) { try { state.ws.close(); } catch {} state.ws = null; }
+                await stopSession();
+                state.sessionId = null;
+                state.busy = false;
+                setControlsEnabled(true);
+            } finally {
+                recordBtn.disabled = false;
+            }
+        }
+        uploadBtn.addEventListener('click', handleUpload);
+
+        // 目标语言即时切换（下次会话生效；会话进行中通过控制消息更新）
+        targetLangSel.addEventListener('change', () => {
+            if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                state.ws.send(JSON.stringify({ type: 'set_target_lang', target_lang: targetLangSel.value }));
+            }
+            log('目标语言 → ' + targetLangSel.value);
+        });
+
+        setStatus('就绪');
+    </script>
+</body>
+</html>

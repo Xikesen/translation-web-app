@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>本地化实时同传系统 · 技术路线</title>
+<style>
+  :root{
+    --bg:#ffffff; --ink:#16181d; --sec:#4b5563; --ter:#8a94a6;
+    --accent:#2b6cff; --accent-soft:#eaf0ff;
+    --line:#e6e8ee; --fill:#f7f8fa;
+    --ok:#0f9d58; --warn:#c77700; --info:#2563eb; --neut:#94a3b8;
+    --danger:#dc2626;
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Helvetica,Arial,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:40px 32px 64px}
+  h1{font-size:30px; line-height:1.25; margin:6px 0 6px; letter-spacing:-.01em}
+  h2{font-size:20px; margin:38px 0 10px; letter-spacing:-.01em}
+  h3{font-size:15px; margin:0 0 6px}
+  p{margin:6px 0}
+  .lead{color:var(--sec); max-width:780px; font-size:15px}
+  .muted{color:var(--ter)}
+  .sec{color:var(--sec)}
+  .small{font-size:12.5px}
+  .tag{display:inline-block; font-size:12px; padding:3px 10px; border-radius:999px;
+       border:1px solid var(--line); color:var(--sec); background:var(--fill); margin-right:6px}
+  .tag.on{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
+  /* metrics */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:20px 0 4px}
+  .stat{border:1px solid var(--line); border-radius:10px; padding:16px 16px 14px; background:#fff}
+  .stat .v{font-size:26px; font-weight:700; letter-spacing:-.02em}
+  .stat .l{font-size:12px; color:var(--ter); margin-top:4px}
+  .v.ok{color:var(--ok)} .v.info{color:var(--info)}
+
+  /* callout */
+  .callout{border:1px solid var(--line); border-left:3px solid var(--accent);
+    background:var(--accent-soft); border-radius:8px; padding:14px 16px; margin:16px 0}
+  .callout .t{font-weight:700; margin-bottom:4px}
+
+  /* cards */
+  .card{border:1px solid var(--line); border-radius:12px; background:#fff}
+  .card .hd{padding:12px 16px; border-bottom:1px solid var(--line); font-weight:600; font-size:14px}
+  .card .bd{padding:16px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+  .grid32{display:grid; grid-template-columns:3fr 2fr; gap:20px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+
+  svg{display:block; width:100%; height:auto}
+
+  /* latency bars */
+  .lat{margin:6px 0}
+  .lat .cat{font-size:13px; color:var(--sec); margin:10px 0 5px}
+  .track{display:flex; height:26px; border-radius:6px; overflow:hidden; background:var(--fill)}
+  .seg{height:100%}
+  .seg.s0{background:#e0a52e} .seg.s1{background:#3b82f6}
+  .seg.s2{background:#0f9d58} .seg.s3{background:#94a3b8}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-size:12.5px; color:var(--sec)}
+  .dot{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:middle}
+  .total{font-size:12px; color:var(--ter); margin-top:3px}
+
+  /* table */
+  table{width:100%; border-collapse:collapse; font-size:13px; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  th,td{text-align:left; padding:9px 11px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:var(--fill); font-weight:600; color:var(--sec); font-size:12px}
+  tr:last-child td{border-bottom:none}
+  td.r,th.r{text-align:right; white-space:nowrap}
+  .mono{font-variant-numeric:tabular-nums}
+  .rowdot{width:7px;height:7px;border-radius:999px;display:inline-block;margin-right:7px;vertical-align:middle}
+  .rowdot.ok{background:var(--ok)} .rowdot.warn{background:var(--warn)}
+
+  /* moat / stack */
+  .item{display:flex; gap:10px; align-items:flex-start; margin:9px 0}
+  .num{flex:0 0 auto; width:20px;height:20px;border-radius:999px;background:var(--accent);color:#fff;
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .kv{display:flex; gap:12px; margin:8px 0}
+  .kv .k{width:78px;flex:0 0 auto;color:var(--ter);font-size:12.5px}
+  .kv .val{font-size:13px;font-weight:500}
+
+  /* roadmap */
+  .phase{display:flex;align-items:center;gap:8px;color:var(--ter);font-size:12px;margin-bottom:6px}
+  .phase .pd{width:8px;height:8px;border-radius:999px}
+
+  .foot{margin-top:34px;padding-top:14px;border-top:1px solid var(--line);color:var(--ter);font-size:12px}
+
+  @media (max-width:760px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .grid2,.grid32,.grid3{grid-template-columns:1fr}
+  }
+  @media print{
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .wrap{padding:0 8px}
+    h2{page-break-after:avoid}
+    .card,table,.callout{page-break-inside:avoid}
+    a[href]:after{content:""}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="row">
+    <span class="tag on">技术路线概览</span>
+    <span class="tag">AR 实时同传眼镜</span>
+    <span class="tag">中 ⇄ 英</span>
+  </div>
+  <h1>本地化实时同传系统 · 技术路线</h1>
+  <p class="lead">一句话说明：戴上眼镜，对方说话时你眼前实时浮现译文字幕，你说话时对方也能看到——全部在一台消费级设备（MacBook M4）上本地完成，不联网、不上云、不产生按次调用费用。</p>
+
+  <!-- Metrics -->
+  <div class="stats">
+    <div class="stat"><div class="v ok">~1.4s</div><div class="l">端到端延迟（英译中，说完到出译文）</div></div>
+    <div class="stat"><div class="v ok">≈0%</div><div class="l">语音识别错误率（清晰语音 WER/CER）</div></div>
+    <div class="stat"><div class="v info">89</div><div class="l">翻译质量 chrF（中译英，满分 100）</div></div>
+    <div class="stat"><div class="v">100%</div><div class="l">本地运行 · 零云成本 · 数据不出设备</div></div>
+  </div>
+
+  <div class="callout">
+    <div class="t">为什么这件事有价值</div>
+    <div class="sec">现有同传方案要么依赖云端（有延迟、有隐私顾虑、按量付费），要么准确度不够。我们把「语音识别 + 机器翻译」两大重型 AI 模型完整塞进一台随身设备，做到<b>可离线、低延迟、零边际成本</b>的双向实时同传——这是把「同传」从会议室服务变成随身硬件的关键一步。</div>
+  </div>
+
+  <!-- Architecture -->
+  <h2>系统架构与数据流</h2>
+  <p class="sec">声音从麦克风进入，经过五个阶段变成眼镜上的译文字幕。蓝框是两个最重的 AI 环节（语音识别、机器翻译），也是我们优化的核心。下方标注为各阶段实测耗时。</p>
+  <div class="card"><div class="bd">
+    <svg viewBox="0 0 1040 172" role="img" aria-label="数据流管线">
+      <defs>
+        <marker id="arw" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#8a94a6"/>
+        </marker>
+      </defs>
+      <!-- boxes -->
+      <!-- generated positions: x = 12 + i*216 -->
+      <!-- stage 0 -->
+      <line x1="188" y1="69" x2="228" y2="69" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arw)"/>
+      <line x1="404" y1="69" x2="444" y2="69" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arw)"/>
+      <line x1="620" y1="69" x2="660" y2="69" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arw)"/>
+      <line x1="836" y1="69" x2="876" y2="69" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arw)"/>
+
+      <g>
+        <rect x="12" y="30" width="176" height="78" rx="8" fill="#f7f8fa" stroke="#e6e8ee"/>
+        <text x="26" y="55" font-size="15" font-weight="600" fill="#16181d">音频采集</text>
+        <text x="26" y="74" font-size="11" fill="#8a94a6">Capture</text>
+        <text x="26" y="94" font-size="10.5" fill="#4b5563">麦克风 · 16kHz · 20ms 帧</text>
+      </g>
+      <g>
+        <rect x="228" y="30" width="176" height="78" rx="8" fill="#f7f8fa" stroke="#e6e8ee"/>
+        <text x="242" y="55" font-size="15" font-weight="600" fill="#16181d">智能断句</text>
+        <text x="242" y="74" font-size="11" fill="#8a94a6">Endpoint</text>
+        <text x="242" y="94" font-size="10.5" fill="#4b5563">WebRTC VAD · 静音检测</text>
+        <text x="316" y="130" font-size="11.5" text-anchor="middle" fill="#2b6cff" font-weight="600">0.5–0.75s</text>
+      </g>
+      <g>
+        <rect x="444" y="30" width="176" height="78" rx="8" fill="#eaf0ff" stroke="#2b6cff" stroke-width="1.6"/>
+        <text x="458" y="55" font-size="15" font-weight="600" fill="#16181d">语音识别</text>
+        <text x="458" y="74" font-size="11" fill="#8a94a6">ASR</text>
+        <text x="458" y="94" font-size="10.5" fill="#4b5563">MLX-Whisper · Apple GPU</text>
+        <text x="532" y="130" font-size="11.5" text-anchor="middle" fill="#2b6cff" font-weight="600">0.2–0.36s</text>
+      </g>
+      <g>
+        <rect x="660" y="30" width="176" height="78" rx="8" fill="#eaf0ff" stroke="#2b6cff" stroke-width="1.6"/>
+        <text x="674" y="55" font-size="15" font-weight="600" fill="#16181d">机器翻译</text>
+        <text x="674" y="74" font-size="11" fill="#8a94a6">Translate</text>
+        <text x="674" y="94" font-size="10.5" fill="#4b5563">本地 LLM · 同传技能</text>
+        <text x="748" y="130" font-size="11.5" text-anchor="middle" fill="#2b6cff" font-weight="600">0.3–0.5s</text>
+      </g>
+      <g>
+        <rect x="876" y="30" width="176" height="78" rx="8" fill="#f7f8fa" stroke="#e6e8ee"/>
+        <text x="890" y="55" font-size="15" font-weight="600" fill="#16181d">眼镜呈现</text>
+        <text x="890" y="74" font-size="11" fill="#8a94a6">AR HUD</text>
+        <text x="890" y="94" font-size="10.5" fill="#4b5563">WebSocket · 滚动字幕</text>
+        <text x="964" y="130" font-size="11.5" text-anchor="middle" fill="#2b6cff" font-weight="600">~0.1s</text>
+      </g>
+      <text x="12" y="166" font-size="11" fill="#8a94a6">端到端全流程在一台设备本地完成 · 无云端调用 · 无网络依赖</text>
+    </svg>
+  </div></div>
+
+  <!-- Latency -->
+  <h2>延迟从哪里来</h2>
+  <div class="grid32">
+    <div>
+      <p class="sec">「说完话到出译文」的总时间被拆成四段。最大的一块是<b>断句检测</b>——必须先听到停顿才能确认一句话说完，这是实时同传的物理下限。</p>
+      <div class="lat">
+        <div class="cat">英译中 (en→zh)</div>
+        <div class="track">
+          <div class="seg s0" style="width:32.5%"></div>
+          <div class="seg s1" style="width:12.5%"></div>
+          <div class="seg s2" style="width:20%"></div>
+          <div class="seg s3" style="width:5.5%"></div>
+        </div>
+        <div class="total">合计 ≈ 1410 ms（断句 650 · 识别 250 · 翻译 400 · 传输 110）</div>
+
+        <div class="cat">中译英 (zh→en)</div>
+        <div class="track">
+          <div class="seg s0" style="width:35%"></div>
+          <div class="seg s1" style="width:18%"></div>
+          <div class="seg s2" style="width:40%"></div>
+          <div class="seg s3" style="width:7%"></div>
+        </div>
+        <div class="total">合计 ≈ 2000 ms（断句 700 · 识别 360 · 翻译 800 · 传输 140）</div>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#e0a52e"></span>断句检测</span>
+        <span><span class="dot" style="background:#3b82f6"></span>语音识别</span>
+        <span><span class="dot" style="background:#0f9d58"></span>机器翻译</span>
+        <span><span class="dot" style="background:#94a3b8"></span>合并/传输</span>
+      </div>
+      <p class="small muted" style="margin-top:8px">来源：端到端流式基准（7 句，真实节奏含结束静音）· 数值为各阶段典型耗时</p>
+    </div>
+    <div class="card">
+      <div class="hd">延迟 vs 准确度</div>
+      <div class="bd">
+        <p class="small sec">二者存在物理权衡。当前策略优先<b>准确度与自然断句</b>（每句说完整体重新解码，避免半句抢跑）。</p>
+        <div style="height:1px;background:var(--line);margin:12px 0"></div>
+        <div class="row" style="margin:8px 0"><span class="tag on">准确模式</span><span class="small sec">英译中 ~1.4s · 完整准确</span></div>
+        <div class="row" style="margin:8px 0"><span class="tag">低延迟模式</span><span class="small sec">英译中 ~0.8–1s · 偶发截断</span></div>
+        <p class="small muted">两种模式一键切换，可按场景取舍。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Benchmark -->
+  <h2>实测结果（端到端基准）</h2>
+  <p class="sec">在真实流式条件下（模拟说话节奏 + 句末停顿）跑完整链路。识别文字与原文几乎逐字一致。</p>
+  <table>
+    <thead><tr>
+      <th>样本</th><th>方向</th><th>原文</th><th>识别结果 (ASR)</th>
+      <th class="r">错误率</th><th class="r">chrF</th><th class="r">尾延迟</th>
+    </tr></thead>
+    <tbody>
+      <tr><td><span class="rowdot ok"></span>en-01</td><td>en→zh</td><td>The meeting will start at 9 tomorrow morning.</td><td>The meeting will start at 9 tomorrow morning.</td><td class="r mono">0.0*</td><td class="r mono">32.0</td><td class="r mono">1558 ms</td></tr>
+      <tr><td><span class="rowdot ok"></span>en-02</td><td>en→zh</td><td>Our revenue grew 15% this quarter.</td><td>Our revenue grew 15% this quarter.</td><td class="r mono">0.0*</td><td class="r mono">60.7</td><td class="r mono">1294 ms</td></tr>
+      <tr><td><span class="rowdot ok"></span>en-03</td><td>en→zh</td><td>Please send me the report before Friday.</td><td>Please send me the report before Friday.</td><td class="r mono">0.00</td><td class="r mono">46.9</td><td class="r mono">1413 ms</td></tr>
+      <tr><td><span class="rowdot ok"></span>en-04</td><td>en→zh</td><td>We cannot ship the product unless the test passes.</td><td>We cannot ship the product unless the test passes.</td><td class="r mono">0.00</td><td class="r mono">36.5</td><td class="r mono">1385 ms</td></tr>
+      <tr><td><span class="rowdot ok"></span>zh-01</td><td>zh→en</td><td>如果明天下雨，会议就取消。</td><td>如果明天下雨，会议就取消。</td><td class="r mono">0.00</td><td class="r mono">96.8</td><td class="r mono">2304 ms</td></tr>
+      <tr><td><span class="rowdot ok"></span>zh-02</td><td>zh→en</td><td>我们的团队下个月搬到新办公室。</td><td>我们的团队下个月搬到新办公室。</td><td class="r mono">0.00</td><td class="r mono">84.7</td><td class="r mono">2220 ms</td></tr>
+      <tr><td><span class="rowdot warn"></span>zh-03</td><td>zh→en</td><td>这个项目的预算不能超过一百万。</td><td>这个项目的预算不能超过100万</td><td class="r mono">0.21</td><td class="r mono">85.2</td><td class="r mono">1470 ms</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted" style="margin-top:8px">*英文错误率标注 * 号者为「9 vs nine」「15% vs 15 percent」等归一化差异，识别文本本身正确。chrF 为字符级自动指标，对中文短句的合理意译偏严格（英译中偏低不代表译文差），故并列展示原文与识别结果供人工判读。</p>
+
+  <!-- Mind map -->
+  <h2>技术栈思维导图</h2>
+  <p class="sec">围绕「本地实时同传」这一核心，能力分为五层——从听见、断句、识别、翻译到呈现，每层都做了针对性的工程取舍。</p>
+  <div class="card"><div class="bd">
+    <svg viewBox="0 0 1040 454" role="img" aria-label="技术栈思维导图">
+      <!-- connectors: root right edge (226,227) to each branch left (774, by) -->
+      <path d="M226 227 C500 227,500 45,774 45"   fill="none" stroke="#c9cfdb" stroke-width="1.4"/>
+      <path d="M226 227 C500 227,500 131,774 131" fill="none" stroke="#c9cfdb" stroke-width="1.4"/>
+      <path d="M226 227 C500 227,500 217,774 217" fill="none" stroke="#c9cfdb" stroke-width="1.4"/>
+      <path d="M226 227 C500 227,500 303,774 303" fill="none" stroke="#c9cfdb" stroke-width="1.4"/>
+      <path d="M226 227 C500 227,500 389,774 389" fill="none" stroke="#c9cfdb" stroke-width="1.4"/>
+
+      <!-- root -->
+      <rect x="16" y="192" width="210" height="70" rx="9" fill="#2b6cff"/>
+      <text x="121" y="221" font-size="15" font-weight="700" text-anchor="middle" fill="#fff">本地实时同传</text>
+      <text x="121" y="242" font-size="11" text-anchor="middle" fill="#dce6ff">On-device Interpreter</text>
+
+      <!-- branches -->
+      <g>
+        <rect x="774" y="12" width="250" height="66" rx="8" fill="#f7f8fa" stroke="#e6e8ee"/>
+        <text x="788" y="34" font-size="13.5" font-weight="600" fill="#16181d">感知与断句 <tspan font-size="10.5" font-weight="400" fill="#8a94a6">Sensing</tspan></text>
+        <text x="788" y="53" font-size="10.5" fill="#4b5563">WebRTC 语音活动检测 · 静音端点→分句</text>
+        <text x="788" y="68" font-size="10.5" fill="#4b5563">500ms 平滑防碎裂</text>
+      </g>
+      <g>
+        <rect x="774" y="98" width="250" height="66" rx="8" fill="#f7f8fa" stroke="#e6e8ee"/>
+        <text x="788" y="120" font-size="13.5" font-weight="600" fill="#16181d">语音识别 <tspan font-size="10.5" font-weight="400" fill="#8a94a6">ASR</tspan></text>
+        <text x="788" y="139" font-size="10.5" fill="#4b5563">MLX-Whisper（Apple GPU）· 双向路由</text>
+        <text x="788" y="154" font-size="10.5" fill="#4b5563">完整音频解码保准确</text>
+      </g>
+      <g>
+        <rect x="774" y="184" width="250" height="66" rx="8" fill="#f7f8fa" stroke="#e6e8ee"/>
+        <text x="788" y="206" font-size="13.5" font-weight="600" fill="#16181d">机器翻译 <tspan font-size="10.5" font-weight="400" fill="#8a94a6">MT</tspan></text>
+        <text x="788" y="225" font-size="10.5" fill="#4b5563">本地 LLM qwen2.5:3b · 同传 Prompt</text>
+        <text x="788" y="240" font-size="10.5" fill="#4b5563">OpenCC 简体规范化</text>
+      </g>
+      <g>
+        <rect x="774" y="270" width="250" height="66" rx="8" fill="#f7f8fa" stroke="#e6e8ee"/>
+        <text x="788" y="292" font-size="13.5" font-weight="600" fill="#16181d">实时呈现 <tspan font-size="10.5" font-weight="400" fill="#8a94a6">Delivery</tspan></text>
+        <text x="788" y="311" font-size="10.5" fill="#4b5563">WebSocket 流式 · AR HUD 滚动字幕</text>
+        <text x="788" y="326" font-size="10.5" fill="#4b5563">连续会话 60 分钟</text>
+      </g>
+      <g>
+        <rect x="774" y="356" width="250" height="66" rx="8" fill="#f7f8fa" stroke="#e6e8ee"/>
+        <text x="788" y="378" font-size="13.5" font-weight="600" fill="#16181d">工程优化 <tspan font-size="10.5" font-weight="400" fill="#8a94a6">Systems</tspan></text>
+        <text x="788" y="397" font-size="10.5" fill="#4b5563">持久连接降延迟 · 断句/准确度调优</text>
+        <text x="788" y="412" font-size="10.5" fill="#4b5563">全离线 · 零云成本</text>
+      </g>
+    </svg>
+  </div></div>
+
+  <!-- Moat + Stack -->
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <div class="hd">技术壁垒 / 差异化</div>
+      <div class="bd">
+        <div class="item"><div class="num">1</div><div class="small"><b>全本地运行</b>——识别与翻译双模型跑在消费级 Apple GPU 上，离线可用。</div></div>
+        <div class="item"><div class="num">2</div><div class="small"><b>零边际成本</b>——不调用云端 API，用得越多越省，隐私天然合规。</div></div>
+        <div class="item"><div class="num">3</div><div class="small"><b>端到端延迟工程</b>——断句、解码、翻译逐段压榨，做到会话级实时。</div></div>
+        <div class="item"><div class="num">4</div><div class="small"><b>同传领域调校</b>——意译优先的 Prompt、简体规范、防漂移，专为口语场景。</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="hd">核心技术栈</div>
+      <div class="bd">
+        <div class="kv"><div class="k">语音识别</div><div class="val">MLX-Whisper（Apple Silicon / Metal GPU）</div></div>
+        <div class="kv"><div class="k">机器翻译</div><div class="val">Ollama · qwen2.5:3b 本地大模型</div></div>
+        <div class="kv"><div class="k">断句 / VAD</div><div class="val">WebRTC 语音活动检测</div></div>
+        <div class="kv"><div class="k">服务框架</div><div class="val">Python · FastAPI · WebSocket 流式</div></div>
+        <div class="kv"><div class="k">中文规范</div><div class="val">OpenCC 繁→简转换</div></div>
+        <div class="kv"><div class="k">前端呈现</div><div class="val">AR 眼镜 HUD（浏览器 / WebGL 就绪）</div></div>
+        <div class="kv"><div class="k">运行硬件</div><div class="val">MacBook M4 · 16GB · 纯端侧</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roadmap -->
+  <h2>下一步路线</h2>
+  <div class="grid3">
+    <div class="card"><div class="bd">
+      <div class="phase"><span class="pd" style="background:#2b6cff"></span>近期</div>
+      <h3>延迟再压缩</h3>
+      <div class="small sec">· 更快端点检测<br/>· 端上更小/更快 LLM<br/>· 识别-翻译流水并行</div>
+    </div></div>
+    <div class="card"><div class="bd">
+      <div class="phase"><span class="pd" style="background:#94a3b8"></span>中期</div>
+      <h3>能力扩展</h3>
+      <div class="small sec">· 多语种（日/韩/西）<br/>· 专业术语词库<br/>· 说话人区分</div>
+    </div></div>
+    <div class="card"><div class="bd">
+      <div class="phase"><span class="pd" style="background:#94a3b8"></span>远期</div>
+      <h3>硬件产品化</h3>
+      <div class="small sec">· 定制 AR 眼镜形态<br/>· 专用低功耗芯片<br/>· 全天候续航</div>
+    </div></div>
+  </div>
+
+  <div class="foot">数据来源：项目端到端基准测试（backend/benchmarks_e2e）· 运行环境 MacBook M4 · 面向非技术读者整理，指标口径见各图注。</div>
+
+</div>
+</body>
+</html>

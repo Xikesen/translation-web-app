@@ -52,6 +52,7 @@ async def translate_with_manager_detailed(
     source_lang: str,
     target_lang: str,
     committed_source_text: str,
+    previous_target_text: str = "",
 ) -> TranslationResult:
     source_state = build_source_state(
         raw_text=source_text,
@@ -133,6 +134,7 @@ async def translate_with_manager_detailed(
             context_pack=context_pack,
             source_lang=source_lang,
             target_lang=target_lang,
+            previous_target_text=previous_target_text,
         )
         route = f"manager_{getattr(_engine, 'backend_name', 'engine')}"
         risk_notes = []

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>本地实时同传系统 · 工程技术规格（详版）</title>
+<style>
+  :root{
+    --bg:#ffffff; --ink:#14161b; --sec:#3f4855; --ter:#7c8798;
+    --accent:#2b6cff; --accent-soft:#eef3ff;
+    --line:#e6e8ee; --fill:#f7f8fa; --fill2:#eef1f5;
+    --ok:#0f9d58; --warn:#c77700; --info:#2563eb; --danger:#dc2626; --neut:#8a94a6;
+    --code:#0b1020; --codeink:#e7ecf6; --kw:#7aa2ff; --str:#8bd5a0; --num:#e5c07b; --cmt:#7c8798;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Helvetica,Arial,sans-serif;
+    font-size:14.5px; line-height:1.62; -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent); text-decoration:none}
+  .layout{display:grid; grid-template-columns:236px 1fr; max-width:1180px; margin:0 auto}
+  /* TOC */
+  nav{position:sticky; top:0; align-self:start; height:100vh; overflow:auto;
+    border-right:1px solid var(--line); padding:22px 16px 40px}
+  nav .brand{font-weight:700; font-size:13px; letter-spacing:.02em; margin-bottom:4px}
+  nav .sub{font-size:11px; color:var(--ter); margin-bottom:16px}
+  nav ol{list-style:none; margin:0; padding:0; counter-reset:s}
+  nav li{margin:2px 0}
+  nav a{display:block; color:var(--sec); font-size:12.5px; padding:4px 8px; border-radius:6px; counter-increment:s}
+  nav a::before{content:counter(s) ". "; color:var(--ter)}
+  nav a:hover{background:var(--fill); color:var(--ink)}
+  /* content */
+  main{padding:34px 40px 90px; min-width:0}
+  h1{font-size:27px; margin:0 0 4px; letter-spacing:-.01em}
+  h2{font-size:20px; margin:40px 0 8px; padding-top:8px; letter-spacing:-.01em}
+  h3{font-size:15.5px; margin:22px 0 6px}
+  h4{font-size:13.5px; margin:16px 0 4px; color:var(--sec)}
+  p{margin:8px 0}
+  .lead{color:var(--sec); font-size:15px; max-width:760px}
+  .muted{color:var(--ter)} .sec{color:var(--sec)} .small{font-size:12.5px}
+  .tagline{display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px}
+  .tag{font-size:11.5px; padding:3px 9px; border-radius:999px; background:var(--fill); border:1px solid var(--line); color:var(--sec)}
+  .tag.on{background:var(--accent); color:#fff; border-color:var(--accent)}
+  ul,ol.reg{margin:6px 0 6px 2px; padding-left:20px}
+  li{margin:3px 0}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.88em;
+    background:var(--fill2); padding:1px 5px; border-radius:4px; color:#2b3a55}
+  pre{background:var(--code); color:var(--codeink); border-radius:9px; padding:14px 16px; overflow:auto;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; line-height:1.55; margin:10px 0}
+  pre code{background:none; color:inherit; padding:0}
+  .k{color:var(--kw)} .s{color:var(--str)} .n{color:var(--num)} .c{color:var(--cmt)}
+  table{width:100%; border-collapse:collapse; font-size:12.8px; margin:10px 0; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:var(--fill); font-weight:600; color:var(--sec); font-size:12px}
+  tr:last-child td{border-bottom:none}
+  td.mono,th.mono{font-family:"SF Mono",ui-monospace,Menlo,monospace; white-space:nowrap}
+  .note{border:1px solid var(--line); border-left:3px solid var(--accent); background:var(--accent-soft);
+    border-radius:8px; padding:11px 14px; margin:12px 0}
+  .note.warn{border-left-color:var(--warn); background:#fff7ec}
+  .note .t{font-weight:700; margin-bottom:2px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  figure{margin:12px 0}
+  svg{display:block; width:100%; height:auto}
+  figcaption{font-size:11.5px; color:var(--ter); margin-top:6px}
+  .kbd{font-family:monospace; font-size:12px; background:var(--fill2); border:1px solid var(--line); border-radius:4px; padding:1px 6px}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0}
+  .foot{color:var(--ter); font-size:12px; margin-top:30px; padding-top:14px; border-top:1px solid var(--line)}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr} nav{display:none} main{padding:24px 18px 60px} .grid2{grid-template-columns:1fr} }
+  @media print{ nav{display:none} .layout{grid-template-columns:1fr} main{padding:0 6px}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact} h2{page-break-after:avoid}
+    pre,table,figure,.note{page-break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav>
+  <div class="brand">实时同传 · 工程规格</div>
+  <div class="sub">On-device Interpreter · v1</div>
+  <ol>
+    <li><a href="#overview">系统概述与设计原则</a></li>
+    <li><a href="#topology">运行拓扑与进程架构</a></li>
+    <li><a href="#flow">端到端数据流</a></li>
+    <li><a href="#audio">音频摄取与分帧</a></li>
+    <li><a href="#vad">VAD 与说话人聚类</a></li>
+    <li><a href="#asr">流式 ASR 端点算法</a></li>
+    <li><a href="#asrbackend">ASR 后端与解码参数</a></li>
+    <li><a href="#merge">分句合并与提交层</a></li>
+    <li><a href="#router">翻译路由</a></li>
+    <li><a href="#mt">翻译引擎（LLM）</a></li>
+    <li><a href="#ws">WebSocket 协议与事件</a></li>
+    <li><a href="#config">配置项参考</a></li>
+    <li><a href="#latency">延迟预算与调优实验</a></li>
+    <li><a href="#bench">基准方法与结果</a></li>
+    <li><a href="#deploy">部署与运行</a></li>
+    <li><a href="#limits">已知限制与路线</a></li>
+  </ol>
+</nav>
+
+<main>
+
+  <h1>本地实时同传系统 · 工程技术规格（详版）</h1>
+  <div class="tagline">
+    <span class="tag on">面向工程师</span>
+    <span class="tag">FastAPI · WebSocket</span>
+    <span class="tag">MLX-Whisper</span>
+    <span class="tag">Ollama qwen2.5:3b</span>
+    <span class="tag">Apple Silicon / M4</span>
+  </div>
+  <p class="lead">本文档穷尽式列出实时语音同传管线的实现细节：音频分帧、VAD、说话人聚类、流式 ASR 端点算法、解码超参、分句合并、翻译路由、LLM 引擎、WebSocket 事件协议、全部配置项、延迟预算与调优实验。所有数值均取自当前代码库（<code>backend/</code>）。</p>
+
+  <!-- 1 -->
+  <h2 id="overview">1 · 系统概述与设计原则</h2>
+  <p>系统是一个<b>伪流式（pseudo-streaming）</b>双向语音同传服务：客户端以 20ms 帧推送 16kHz 单声道 PCM，服务端做 VAD 端点检测→缓冲区整段重解码（Whisper）→分句合并→本地 LLM 翻译→WebSocket 广播事件到眼镜 HUD。中英双向。</p>
+  <h4>设计原则</h4>
+  <ul>
+    <li><b>全本地</b>：ASR（MLX-Whisper，Apple GPU/Metal）与 MT（Ollama 本地 LLM）均在设备内运行，无云端、无网络依赖、零按次成本。</li>
+    <li><b>准确优先</b>：句尾对完整缓冲区做一次正规解码（不复用半截 partial），保证转写完整与断句自然；低延迟为可选模式。</li>
+    <li><b>无状态翻译单元</b>：每个提交句<b>独立翻译</b>，不注入上一句译文，避免小模型跨句污染/复读。</li>
+    <li><b>确定性输出</b>：翻译 <code>temperature=0</code>；中文统一 OpenCC 繁→简。</li>
+    <li><b>可降级</b>：<code>webrtcvad</code> 缺失时回退能量门限；ASR/MT 后端可切换。</li>
+  </ul>
+
+  <!-- 2 -->
+  <h2 id="topology">2 · 运行拓扑与进程架构</h2>
+  <figure>
+    <svg viewBox="0 0 1000 250" role="img" aria-label="运行拓扑">
+      <defs><marker id="a" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#8a94a6"/></marker></defs>
+      <!-- browser -->
+      <rect x="10" y="40" width="210" height="170" rx="9" fill="#f7f8fa" stroke="#e6e8ee"/>
+      <text x="24" y="64" font-size="13" font-weight="700" fill="#14161b">浏览器 / AR HUD</text>
+      <text x="24" y="86" font-size="11" fill="#3f4855">newfronted.html</text>
+      <text x="24" y="104" font-size="10.5" fill="#3f4855">getUserMedia → 16kHz PCM</text>
+      <text x="24" y="120" font-size="10.5" fill="#3f4855">AudioWorklet 重采样/分帧</text>
+      <text x="24" y="136" font-size="10.5" fill="#3f4855">WebSocket 二进制帧</text>
+      <text x="24" y="160" font-size="10.5" fill="#3f4855">渲染 partial/transcript/</text>
+      <text x="24" y="175" font-size="10.5" fill="#3f4855">translation 事件（滚动字幕）</text>
+      <!-- uvicorn -->
+      <rect x="300" y="20" width="340" height="210" rx="9" fill="#eef3ff" stroke="#2b6cff" stroke-width="1.5"/>
+      <text x="316" y="44" font-size="13" font-weight="700" fill="#14161b">uvicorn : 8000（FastAPI，asyncio）</text>
+      <rect x="316" y="58" width="308" height="52" rx="7" fill="#fff" stroke="#e6e8ee"/>
+      <text x="328" y="79" font-size="11" font-weight="600" fill="#14161b">/ws_audio/{id} 处理器</text>
+      <text x="328" y="97" font-size="10" fill="#3f4855">接收帧 · 广播事件 · asyncio.create_task 翻译</text>
+      <rect x="316" y="116" width="308" height="46" rx="7" fill="#fff" stroke="#e6e8ee"/>
+      <text x="328" y="135" font-size="11" font-weight="600" fill="#14161b">RealtimeAudioPipeline（to_thread）</text>
+      <text x="328" y="152" font-size="10" fill="#3f4855">VAD · 说话人 · Whisper 缓冲/端点</text>
+      <rect x="316" y="168" width="308" height="46" rx="7" fill="#fff" stroke="#e6e8ee"/>
+      <text x="328" y="187" font-size="11" font-weight="600" fill="#14161b">utterance / translation_router</text>
+      <text x="328" y="204" font-size="10" fill="#3f4855">合并 · 缓存/术语/模糊TM · 引擎</text>
+      <!-- gpu / ollama -->
+      <rect x="720" y="30" width="270" height="88" rx="9" fill="#f7f8fa" stroke="#e6e8ee"/>
+      <text x="734" y="54" font-size="13" font-weight="700" fill="#14161b">MLX Runtime（进程内）</text>
+      <text x="734" y="75" font-size="10.5" fill="#3f4855">mlx_whisper.transcribe</text>
+      <text x="734" y="91" font-size="10.5" fill="#3f4855">Apple GPU / Metal · fp16</text>
+      <text x="734" y="108" font-size="10.5" fill="#3f4855">模型缓存于进程</text>
+      <rect x="720" y="134" width="270" height="80" rx="9" fill="#f7f8fa" stroke="#e6e8ee"/>
+      <text x="734" y="158" font-size="13" font-weight="700" fill="#14161b">Ollama : 11434</text>
+      <text x="734" y="179" font-size="10.5" fill="#3f4855">qwen2.5:3b · /api/chat</text>
+      <text x="734" y="195" font-size="10.5" fill="#3f4855">Metal GPU · keep_alive 30m</text>
+      <line x1="220" y1="125" x2="300" y2="125" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="228" y="118" font-size="9.5" fill="#7c8798">WS 帧</text>
+      <line x1="640" y1="139" x2="720" y2="80" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#a)"/>
+      <line x1="640" y1="191" x2="720" y2="174" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="648" y="120" font-size="9.5" fill="#7c8798">解码</text>
+      <text x="648" y="188" font-size="9.5" fill="#7c8798">HTTP</text>
+    </svg>
+    <figcaption>三个协作单元：浏览器（采集+呈现）、uvicorn/FastAPI（编排，单进程 asyncio + 线程池）、两个本地 AI 运行时（MLX 进程内 / Ollama 独立进程）。CPU 阻塞的 Whisper 解码通过 <code>asyncio.to_thread</code> 卸载到线程池，翻译经 <code>asyncio.create_task</code> 异步并发。</figcaption>
+  </figure>
+
+  <!-- 3 -->
+  <h2 id="flow">3 · 端到端数据流</h2>
+  <ol class="reg">
+    <li>客户端 <code>POST /session/start {target_lang}</code> → 得到 <code>session_id</code>。</li>
+    <li>打开 <code>WS /ws_audio/{session_id}</code>；服务端回 <code>audio_connected</code>（声明 16kHz / s16le / mono / 20ms）。</li>
+    <li>客户端持续发送二进制 PCM 帧（每帧 640 字节 = 320 样本 × 2）。</li>
+    <li><code>process_audio_chunk</code> → <code>RealtimeAudioPipeline.push_chunk</code>（在线程池）：切 20ms 帧 → 每 <code>frames_per_batch=25</code> 帧（=500ms）成一个批 → 批级 VAD/能量判定 → 说话人分配 → 推入该说话人的流式 ASR。</li>
+    <li>ASR 达到解码条件时解码缓冲区：<b>非最终</b>结果 → 广播 <code>partial_transcript</code>（仅显示，不提交）；<b>最终</b>结果（端点静音触发）→ 进入合并层。</li>
+    <li><code>prepare_utterance</code>：LID 平滑、说话人窗口、发 <code>transcript</code> 事件，累积 pending，满足 flush 条件则产出待译文本。</li>
+    <li>待译文本经 <code>asyncio.create_task(_translate_and_broadcast)</code> → <code>translation_router</code> → 引擎（Ollama）→ 广播 <code>translation</code> 事件。</li>
+    <li>客户端把 <code>partial_transcript</code>/<code>transcript</code>/<code>translation</code> 渲染成滚动字幕。</li>
+  </ol>
+
+  <!-- 4 -->
+  <h2 id="audio">4 · 音频摄取与分帧</h2>
+  <table>
+    <tr><th>参数</th><th class="mono">值</th><th>说明</th></tr>
+    <tr><td>采样率</td><td class="mono">16000 Hz</td><td>Whisper 原生输入率</td></tr>
+    <tr><td>格式 / 声道</td><td class="mono">s16le / mono</td><td>16-bit 小端 PCM，单声道</td></tr>
+    <tr><td>帧长</td><td class="mono">20 ms</td><td><code>frame_samples=320</code>，<code>frame_bytes=640</code></td></tr>
+    <tr><td>VAD/端点批</td><td class="mono">AUDIO_VAD_BATCH_MS=500</td><td><code>frames_per_batch=25</code>；端点检测颗粒度</td></tr>
+    <tr><td>会话上限</td><td class="mono">SESSION_MAX_SECONDS=3600</td><td>单会话最长 1 小时</td></tr>
+  </table>
+  <p class="sec">不足一帧的尾字节被丢弃（<code>_split_frames</code> 只保留完整 640 字节帧）。批时间戳由 <code>stream_cursor_ms</code> 单调累加维护。</p>
+
+  <!-- 5 -->
+  <h2 id="vad">5 · VAD 与说话人聚类</h2>
+  <h3>5.1 语音活动判定（批级）</h3>
+  <p>每 500ms 批计算两路特征并取「或」：</p>
+  <pre><code><span class="k">vad_prob</span>  = voiced_frames / total_frames   <span class="c"># webrtcvad.Vad(1)，逐 20ms 帧</span>
+<span class="k">energy</span>    = sqrt(mean(x^2))                <span class="c"># 归一化到 [-1,1] 的 RMS</span>
+<span class="k">is_speech</span> = vad_prob &gt;= <span class="n">0.12</span> <span class="k">or</span> energy &gt;= <span class="n">0.0012</span></code></pre>
+  <table>
+    <tr><th>常量</th><th class="mono">值</th><th>含义</th></tr>
+    <tr><td>webrtcvad 侵略度</td><td class="mono">Vad(1)</td><td>0–3，1 偏宽松</td></tr>
+    <tr><td>AUDIO_VOICED_RATIO_THRESHOLD</td><td class="mono">0.12</td><td>批内浊音帧占比阈值</td></tr>
+    <tr><td>AUDIO_ENERGY_THRESHOLD</td><td class="mono">0.0012</td><td>RMS 能量兜底阈值</td></tr>
+  </table>
+  <p class="sec">静音批会给<b>所有有未决音频的说话人</b>推入等长静音帧，用于累积 trailing silence 触发各自端点。</p>
+
+  <h3>5.2 轻量说话人区分</h3>
+  <p>无需外部模型的近似 diarization：对每个语音批做 8 维频谱指纹并做余弦聚类。</p>
+  <pre><code><span class="c"># _SpeakerTracker</span>
+spectrum = |rfft(signal)|
+feats    = log1p(mean over 8 频带)     <span class="c"># 8 维</span>
+feats    = feats / ||feats||           <span class="c"># L2 归一</span>
+score    = cosine(feats, prototype)
+<span class="k">if</span> score &lt; <span class="n">0.82</span> <span class="k">and</span> n_speakers &lt; <span class="n">3</span>:  新建说话人 A/B/C
+<span class="k">else</span>: prototype = <span class="n">0.85</span>*prototype + <span class="n">0.15</span>*feats  <span class="c"># 动量更新</span></code></pre>
+  <table>
+    <tr><th>常量</th><th class="mono">值</th></tr>
+    <tr><td>match_threshold</td><td class="mono">0.82</td></tr>
+    <tr><td>momentum</td><td class="mono">0.85</td></tr>
+    <tr><td>MAX_SPEAKERS / 标签</td><td class="mono">3 / A,B,C</td></tr>
+  </table>
+
+  <!-- 6 -->
+  <h2 id="asr">6 · 流式 ASR 端点算法</h2>
+  <p>每个说话人维护一个流式 ASR 实例，内部按帧累积缓冲并周期性重解码整段（伪流式）。核心状态与判定：</p>
+  <pre><code><span class="c"># 每帧 push_frame 后</span>
+buffered_audio_ms        += frame_ms
+buffered_since_decode_ms += frame_ms
+trailing_silence_ms       = 0 <span class="k">if</span> 语音帧 <span class="k">else</span> += frame_ms
+
+should_finalize = (buffered_audio_ms &gt;= <span class="n">MIN_COMMIT(300)</span>
+                   <span class="k">and</span> trailing_silence_ms &gt;= <span class="n">COMMIT_SILENCE(300)</span>)
+                  <span class="k">or</span> buffered_audio_ms &gt;= <span class="n">MAX_SEGMENT(4000)</span>
+
+should_decode   = should_finalize
+                  <span class="k">or</span> buffered_since_decode_ms &gt;= <span class="n">DECODE_INTERVAL(500)</span></code></pre>
+  <table>
+    <tr><th>参数</th><th class="mono">值</th><th>作用</th></tr>
+    <tr><td>ASR_BATCH_MS（解码间隔）</td><td class="mono">500</td><td>partial 重解码周期</td></tr>
+    <tr><td>ASR_COMMIT_SILENCE_MS</td><td class="mono">300</td><td>句尾静音阈值（区分句内停顿 vs 句尾）</td></tr>
+    <tr><td>ASR_MIN_COMMIT_MS</td><td class="mono">300</td><td>最短可提交音频，挡碎片/短幻觉</td></tr>
+    <tr><td>ASR_MAX_SEGMENT_MS</td><td class="mono">4000</td><td>强制断句上限（防跑飞）</td></tr>
+    <tr><td>ASR_REUSE_PARTIAL_AS_FINAL</td><td class="mono">0（关）</td><td>fast-path：见下</td></tr>
+  </table>
+  <h4>去抖与稳定度</h4>
+  <ul>
+    <li><b>签名去重</b>：<code>(text, is_final)</code> 与上次相同则丢弃，避免重复事件。</li>
+    <li><b>stability</b>：与上次 tokens 的最长公共前缀比例，用于前端标示 partial 稳定度；final 恒为 1.0。</li>
+  </ul>
+  <div class="note warn"><div class="t">fast-path（默认关闭，<code>ASR_REUSE_PARTIAL_AS_FINAL=0</code>）</div>
+  当句尾自解码后无新语音时，可把最近的 partial 直接升格为 final，省掉一次整段重解码（约 200–400ms）。但它可能把「说话中途解码的半截结果」当成最终结果 → 转写截断、断句奇怪。因此默认关闭，句尾一律对完整缓冲区正规解码。置 <code>1</code> 进入低延迟模式。</div>
+
+  <!-- 7 -->
+  <h2 id="asrbackend">7 · ASR 后端与解码参数</h2>
+  <p>三种后端共享同一套缓冲/端点逻辑，只替换解码调用：</p>
+  <table>
+    <tr><th class="mono">ASR_BACKEND</th><th>实现</th><th>设备</th><th>默认模型</th></tr>
+    <tr><td class="mono">mlx_whisper_local</td><td>mlx_whisper.transcribe</td><td>Apple GPU/Metal</td><td class="mono">whisper-small-mlx</td></tr>
+    <tr><td class="mono">faster_whisper_local</td><td>CTranslate2</td><td>CPU（Mac 无 Metal）/CUDA</td><td class="mono">small.en</td></tr>
+    <tr><td class="mono">transformers_whisper_local</td><td>HF pipeline</td><td>CUDA/CPU</td><td class="mono">whisper-large-v3-turbo</td></tr>
+  </table>
+
+  <h3>7.1 MLX 解码（生产路径）</h3>
+  <pre><code>mlx_whisper.transcribe(audio, path_or_hf_repo=model,
+    language=lang_hint, fp16=<span class="k">True</span>, verbose=<span class="k">False</span>,
+    condition_on_previous_text=<span class="k">False</span>,   <span class="c"># 抗漂移：不吃上文</span>
+    temperature=<span class="n">0.0</span>,
+    no_speech_threshold=<span class="n">0.6</span>,
+    logprob_threshold=<span class="n">-1.0</span>,
+    compression_ratio_threshold=<span class="n">2.4</span>)      <span class="c"># 拒绝重复/低置信</span></code></pre>
+  <p class="sec">置信度由各段 <code>avg_logprob</code> 经 <code>exp()</code> 映射到 [0,1] 后平均。</p>
+
+  <h3>7.2 混合模型路由（仅 mlx）</h3>
+  <p>按会话<b>目标语</b>反推源语选择模型（<code>ASR_HYBRID_BY_TARGET=1</code>）：</p>
+  <pre><code>use_fast = target_lang <span class="k">in</span> {<span class="s">"zh"</span>}          <span class="c"># 目标中文 ⇒ 源为英文</span>
+model    = <span class="s">"whisper-small.en-mlx"</span> <span class="k">if</span> use_fast <span class="k">else</span> <span class="s">"whisper-small-mlx"</span>
+lang     = <span class="s">"en"</span>                  <span class="k">if</span> use_fast <span class="k">else</span> ASR_LANGUAGE_HINT</code></pre>
+  <p class="sec">英译中走 English-only 模型（数字/术语更准）；中译英走多语模型保中文识别。</p>
+
+  <h3>7.3 后处理</h3>
+  <ul>
+    <li><b>OpenCC 繁→简</b>：<code>to_simplified()</code> 施加于所有 ASR 文本（Whisper 偶出繁体）。</li>
+    <li><b>幻觉过滤</b>：final 段若归一化后 ≤16 字且命中已知幻觉短语集（"Thank you"/"谢谢观看"/"请点赞订阅"…）则丢弃。仅对<b>极短</b>段生效，正常内容永不误删。</li>
+  </ul>
+
+  <h3>7.4 faster-whisper 解码（对照）</h3>
+  <pre><code>model.transcribe(audio, language=hint, beam_size=<span class="n">1</span>, best_of=<span class="n">1</span>,
+    word_timestamps=<span class="k">False</span>, vad_filter=<span class="k">False</span>,
+    condition_on_previous_text=<span class="k">False</span>,
+    no_speech_threshold=<span class="n">0.6</span>, log_prob_threshold=<span class="n">-1.2</span>,
+    compression_ratio_threshold=<span class="n">2.8</span>)</code></pre>
+
+  <!-- 8 -->
+  <h2 id="merge">8 · 分句合并与提交层</h2>
+  <p>ASR final 段进入 <code>prepare_utterance</code>：先发 <code>transcript</code> 事件，再把文本累加到 <code>pending_text</code>，按下列任一条件 flush 为「待译句」。</p>
+  <pre><code>flush <span class="k">if</span> len(pending) &gt;= <span class="n">MERGE_FORCE_CHARS(60)</span>
+   <span class="k">or</span> pending.endswith(句末标点 . ! ? ; : 。 ！ ？ ； ：)
+   <span class="k">or</span> len(latest_segment) &gt;= <span class="n">MERGE_SHORT_MAX_CHARS(24)</span>
+   <span class="k">or</span> (now - pending_started) &gt;= <span class="n">MERGE_MAX_WAIT_SECONDS(0.15)</span></code></pre>
+  <p class="sec">音频路径对 final 段以 <code>force_commit=True</code> 调用，因此通常立即 flush；merge 窗口 0.15s 仅用于把紧邻的碎片并入同句、控制尾延迟。拼接时按需补空格（下一段以标点开头则不补）。</p>
+  <h4>语种判定平滑（LID）</h4>
+  <table>
+    <tr><td>LID_SMOOTH_WINDOW</td><td class="mono">5</td><td>近 5 次观测多数表决</td></tr>
+    <tr><td>LID_MIN_CONFIDENCE</td><td class="mono">0.65</td><td>低于此置信的观测不计入</td></tr>
+  </table>
+  <p class="sec">避免逐句语种抖动导致翻译方向反复横跳；稳定语种缓存在 <code>speaker.stable_source_lang</code>。</p>
+
+  <!-- 9 -->
+  <h2 id="router">9 · 翻译路由</h2>
+  <p><code>translate_with_manager_detailed()</code> 先 gate 决策 + write-plan，再按优先级出译文，返回 <code>route</code> 名以便观测：</p>
+  <ol class="reg">
+    <li><b>精确缓存 / 术语表命中</b> → <code>manager_glossary</code>（~0ms）。</li>
+    <li><b>legacy 路由</b>（精确缓存 + 模糊 TM + TM 润色）→ <code>manager_router:*</code>。</li>
+    <li><b>管理引擎（LLM）</b> → <code>manager_ollama</code> / <code>manager_student-editor</code>。</li>
+    <li><b>异常兜底</b> → <code>manager_fallback_error</code>（回落原文）。</li>
+  </ol>
+  <table>
+    <tr><th>路由常量</th><th class="mono">值</th></tr>
+    <tr><td>精确缓存开关 / 容量</td><td class="mono">on / 2000</td></tr>
+    <tr><td>模糊 TM 开关 / 容量 / 阈值</td><td class="mono">on / 5000 / 0.93</td></tr>
+    <tr><td>TM 润色开关 / 阈值</td><td class="mono">on / 0.85</td></tr>
+    <tr><td>源上下文最大字符</td><td class="mono">SOURCE_CONTEXT_MAX_CHARS=240</td></tr>
+  </table>
+  <p class="sec">缓存/TM 命中使「重复句」近零延迟；<code>translation</code> 事件带 <code>route</code>/<code>latency_ms</code>/<code>gate_action</code>/<code>write_mode</code>/<code>risk_notes</code> 供前端与观测。</p>
+
+  <!-- 10 -->
+  <h2 id="mt">10 · 翻译引擎（LLM）</h2>
+  <p>生产后端 <code>MANAGER_BACKEND=ollama</code>，调用本地 <code>qwen2.5:3b</code> 的 <code>/api/chat</code>。</p>
+  <table>
+    <tr><th>参数</th><th class="mono">值</th></tr>
+    <tr><td>模型</td><td class="mono">OLLAMA_MODEL=qwen2.5:3b</td></tr>
+    <tr><td>解码</td><td class="mono">temperature=0.0 · top_p=0.9 · num_predict=96</td></tr>
+    <tr><td>stream / think</td><td class="mono">False / False</td></tr>
+    <tr><td>keep_alive</td><td class="mono">30m（常驻显存）</td></tr>
+    <tr><td>连接</td><td class="mono">持久 httpx.AsyncClient（keepalive×4，120s）</td></tr>
+  </table>
+  <h4>System Prompt（精简以降 prefill 延迟）</h4>
+  <pre><code>You are a real-time interpreter. Translate from {SRC} to {TGT}.
+[若目标中文] Write only Simplified Chinese, never Traditional.
+Use natural, fluent {TGT} word order and translate the meaning,
+not word for word. Preserve names, numbers, dates, units, and
+negation. Keep these terms exactly: ai agent.
+Output only the translation, nothing else.</code></pre>
+  <h4>User Prompt（每句独立）</h4>
+  <pre><code>Translate this into {TGT}:
+{new_segment}</code></pre>
+  <ul>
+    <li><b>术语占位</b>：<code>PRESERVE_TERMS=("ai agent",)</code> 先替换为 <code>[[TERM_0]]</code>，译后还原，防止被翻译/大小写破坏。</li>
+    <li><b>同语直通</b>：源=目标语且非中英混排时原样返回（0ms）。</li>
+    <li><b>简体规范</b>：目标中文时对译文再过一遍 <code>to_simplified()</code>。</li>
+    <li><b>不注入上一句译文</b>：刻意省略，避免小模型跨句复读/漂移（连续多句「乱翻」的根因）。</li>
+  </ul>
+  <p class="sec">备选后端 <code>student_editor</code>：draft（Opus-MT/HF）→ action 分类（KEEP/EDIT/HOLD）→ edit（seq2seq，beam=2，no_repeat_ngram=3）+ 数字/相似度安全护栏；当前仅支持 en→zh，默认不启用。</p>
+
+  <!-- 11 -->
+  <h2 id="ws">11 · WebSocket 协议与事件</h2>
+  <h4>REST</h4>
+  <table>
+    <tr><th>方法 / 路径</th><th>说明</th></tr>
+    <tr><td class="mono">POST /session/start</td><td>体 <code>{target_lang}</code>，返回 <code>{session_id}</code></td></tr>
+    <tr><td class="mono">POST /session/{id}/stop</td><td>结束会话</td></tr>
+    <tr><td class="mono">POST /session/{id}/utterance</td><td>文本直翻（非音频路径）</td></tr>
+    <tr><td class="mono">GET /health</td><td><code>{"status":"ok"}</code></td></tr>
+    <tr><td class="mono">GET / , /glass</td><td>眼镜 HUD 前端</td></tr>
+    <tr><td class="mono">GET /benchmark/translation</td><td>翻译路由指标快照</td></tr>
+    <tr><td class="mono">POST /glossary/upload</td><td>上传术语表</td></tr>
+  </table>
+  <h4>WS <code>/ws_audio/{id}</code></h4>
+  <p><b>客户端 → 服务端</b>：二进制 PCM 帧；或文本控制 <code>{"type":"set_target_lang","target_lang":"zh"}</code>。<br/>
+  <b>服务端 → 客户端</b> 事件类型：</p>
+  <table>
+    <tr><th class="mono">type</th><th>关键字段</th><th>时机</th></tr>
+    <tr><td class="mono">audio_connected</td><td>sample_rate, sample_format, channels, frame_ms, supported_target_langs</td><td>连接建立</td></tr>
+    <tr><td class="mono">partial_transcript</td><td>speaker_label, source_lang, source_text</td><td>非最终 ASR（仅显示）</td></tr>
+    <tr><td class="mono">transcript</td><td>source_text, source_lang, target_lang, visible_labels</td><td>final ASR 提交</td></tr>
+    <tr><td class="mono">translation</td><td>translated_text, route, latency_ms, gate_action, write_mode, risk_notes</td><td>译文就绪</td></tr>
+    <tr><td class="mono">speaker_start</td><td>speaker_label</td><td>新说话人首次活跃</td></tr>
+    <tr><td class="mono">target_lang_updated</td><td>target_lang</td><td>切换目标语</td></tr>
+    <tr><td class="mono">error</td><td>message</td><td>异常</td></tr>
+  </table>
+  <p class="sec">另有 <code>WS /ws/{id}</code> 走纯文本 <code>utterance</code> 流程，事件同构。</p>
+
+  <!-- 12 -->
+  <h2 id="config">12 · 配置项参考（环境变量）</h2>
+  <table>
+    <tr><th>变量</th><th class="mono">默认</th><th>说明</th></tr>
+    <tr><td class="mono">MANAGER_BACKEND</td><td class="mono">student_editor*</td><td>生产用 <code>ollama</code>（start_mac 导出）</td></tr>
+    <tr><td class="mono">OLLAMA_MODEL</td><td class="mono">qwen2.5:3b</td><td><code>qwen2.5:7b</code>=质量模式（~2× 尾延迟）</td></tr>
+    <tr><td class="mono">OLLAMA_URL</td><td class="mono">http://localhost:11434</td><td>Ollama 服务</td></tr>
+    <tr><td class="mono">OLLAMA_KEEP_ALIVE</td><td class="mono">30m</td><td>模型常驻</td></tr>
+    <tr><td class="mono">TRANSLATION_MAX_NEW_TOKENS</td><td class="mono">96</td><td>译文最大 token</td></tr>
+    <tr><td class="mono">TRANSLATION_TEMPERATURE / TOP_P</td><td class="mono">0.0 / 0.9</td><td>确定性解码</td></tr>
+    <tr><td class="mono">ASR_BACKEND</td><td class="mono">transformers*</td><td>生产用 <code>mlx_whisper_local</code></td></tr>
+    <tr><td class="mono">ASR_MODEL_NAME</td><td class="mono">whisper-small-mlx</td><td>主 ASR 模型</td></tr>
+    <tr><td class="mono">ASR_FAST_MODEL_NAME</td><td class="mono">whisper-small.en-mlx</td><td>英文源快模型</td></tr>
+    <tr><td class="mono">ASR_HYBRID_BY_TARGET</td><td class="mono">1</td><td>按目标语选模型</td></tr>
+    <tr><td class="mono">ASR_FAST_TARGET_LANGS</td><td class="mono">zh</td><td>用快模型的目标语集合</td></tr>
+    <tr><td class="mono">ASR_LANGUAGE_HINT</td><td class="mono">en（生产置空）</td><td>解码语言提示</td></tr>
+    <tr><td class="mono">ASR_BATCH_MS</td><td class="mono">500</td><td>解码间隔</td></tr>
+    <tr><td class="mono">ASR_COMMIT_SILENCE_MS</td><td class="mono">300</td><td>句尾静音阈值</td></tr>
+    <tr><td class="mono">ASR_MIN_COMMIT_MS</td><td class="mono">300</td><td>最短提交音频</td></tr>
+    <tr><td class="mono">ASR_MAX_SEGMENT_MS</td><td class="mono">4000</td><td>强制断句上限</td></tr>
+    <tr><td class="mono">ASR_REUSE_PARTIAL_AS_FINAL</td><td class="mono">0</td><td>fast-path 低延迟模式</td></tr>
+    <tr><td class="mono">AUDIO_VAD_BATCH_MS</td><td class="mono">500</td><td>VAD/端点颗粒度</td></tr>
+    <tr><td class="mono">AUDIO_VOICED_RATIO_THRESHOLD</td><td class="mono">0.12</td><td>浊音占比阈值</td></tr>
+    <tr><td class="mono">AUDIO_ENERGY_THRESHOLD</td><td class="mono">0.0012</td><td>能量兜底阈值</td></tr>
+    <tr><td class="mono">MERGE_FORCE_CHARS</td><td class="mono">60</td><td>强制 flush 字数</td></tr>
+    <tr><td class="mono">MERGE_SHORT_MAX_CHARS</td><td class="mono">24</td><td>本段够长即 flush</td></tr>
+    <tr><td class="mono">MERGE_MAX_WAIT_SECONDS</td><td class="mono">0.15</td><td>merge 最长等待</td></tr>
+    <tr><td class="mono">LID_SMOOTH_WINDOW / MIN_CONFIDENCE</td><td class="mono">5 / 0.65</td><td>语种平滑</td></tr>
+    <tr><td class="mono">SESSION_MAX_SECONDS</td><td class="mono">3600</td><td>会话上限</td></tr>
+  </table>
+  <p class="small muted">* 代码默认为历史值；<code>start_mac.sh</code> 会覆盖为生产值（ollama + mlx_whisper_local）。</p>
+
+  <!-- 13 -->
+  <h2 id="latency">13 · 延迟预算与调优实验</h2>
+  <h4>M4 上的组件耗时（实测）</h4>
+  <table>
+    <tr><th>组件</th><th class="mono">英文</th><th class="mono">中文</th></tr>
+    <tr><td>Whisper small 解码</td><td class="mono">~200 ms</td><td class="mono">~360 ms</td></tr>
+    <tr><td>Whisper medium 解码</td><td class="mono">~580 ms</td><td class="mono">~1050 ms</td></tr>
+    <tr><td>Whisper large-v3-turbo 解码</td><td class="mono">~800 ms</td><td class="mono">~1560 ms</td></tr>
+    <tr><td>qwen2.5:3b 翻译（热）</td><td class="mono" colspan="2">~300–500 ms</td></tr>
+  </table>
+  <h4>端到端尾延迟（说完 → 出译文，含结束静音）</h4>
+  <table>
+    <tr><th>配置</th><th class="mono">英译中</th><th class="mono">中译英</th><th>准确/断句</th></tr>
+    <tr><td>fast-path 关 · VAD 500 · commit 300 · merge 0.15（<b>当前</b>）</td><td class="mono">1.41 s</td><td class="mono">2.00 s</td><td>准确、断句正常</td></tr>
+    <tr><td>细 VAD 120 + commit 300</td><td class="mono">—</td><td class="mono">2.22 s</td><td>碎裂、更差</td></tr>
+    <tr><td>merge 0.4（旧）</td><td class="mono">~1.6 s</td><td class="mono">~2.3 s</td><td>正常</td></tr>
+  </table>
+  <div class="note"><div class="t">关键结论</div>
+  <b>断句检测是物理下限</b>：必须先听到 ≥300ms 静音才能确认句子结束。细颗粒 VAD 会把句内停顿误判为句尾（碎裂），反而增加尾延迟。500ms 粗批靠「看不见短停顿」保护断句。<br/>
+  「准确 + 自然断句」的现实尾延迟约 <b>1.4–2.0s</b>；要压到 0.5–0.8s 只能开 fast-path（牺牲部分准确度/偶发截断）。二者不可兼得。</div>
+
+  <!-- 14 -->
+  <h2 id="bench">14 · 基准方法与结果</h2>
+  <p><code>backend/benchmarks_e2e/e2e_benchmark.py</code>：通过真实 WS 路径流式推送合成语音（TTS，7 句），按真实节奏发帧 + 1600ms 结束静音，端到端测：</p>
+  <ul>
+    <li><b>WER</b>（英，词级）/ <b>CER</b>（中，字级）：参考 vs Whisper 输出（Levenshtein）。</li>
+    <li><b>chrF</b>：字符 n-gram F 值（参考 vs 译文）；可选 <b>LLM-as-judge</b>（qwen3:8b，0–100 语义分）。</li>
+    <li><b>尾延迟</b>：最后一帧音频 → final translation 事件。</li>
+  </ul>
+  <table>
+    <tr><th>指标</th><th class="mono">结果</th></tr>
+    <tr><td>ASR 错误率（均值，WER/CER）</td><td class="mono">≈0.089（清晰语音近逐字）</td></tr>
+    <tr><td>翻译 chrF（整体 / 中译英）</td><td class="mono">63 / 89</td></tr>
+    <tr><td>尾延迟 均值 / p95</td><td class="mono">1.66 s / 2.28 s</td></tr>
+  </table>
+  <p class="small muted">chrF 对中文短句合理意译偏严格（英译中偏低不代表译文差）；建议辅以 LLM-judge 或人工判读。</p>
+
+  <!-- 15 -->
+  <h2 id="deploy">15 · 部署与运行</h2>
+  <h4>依赖</h4>
+  <ul>
+    <li>Python：FastAPI · uvicorn · numpy(1.26.4) · webrtcvad-wheels(2.0.14) · httpx · faster-whisper · opencc-python-reimplemented(0.1.7)</li>
+    <li>Apple Silicon 额外：<code>mlx-whisper</code> · <code>scipy==1.11.4</code>（由 start_mac.sh 条件安装）</li>
+    <li>外部：Ollama（<code>ollama pull qwen2.5:3b</code>）</li>
+  </ul>
+  <h4>一键启动</h4>
+  <pre><code>./start_mac.sh          <span class="c"># 拉起 Ollama + 装依赖 + 启动后端</span>
+<span class="c"># 打开 http://localhost:8000/glass</span></code></pre>
+  <h4>手动启动（生产参数）</h4>
+  <pre><code><span class="k">cd</span> backend
+MANAGER_BACKEND=ollama OLLAMA_MODEL=qwen2.5:3b \
+ASR_BACKEND=mlx_whisper_local ASR_MODEL_NAME=mlx-community/whisper-small-mlx \
+ASR_LANGUAGE_HINT="" \
+./.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000</code></pre>
+  <p class="sec">硬件基线：MacBook M4 · 16GB 统一内存。Ollama 与 MLX 共享 GPU；16GB 下 3B 翻译 + small ASR 可稳定常驻。</p>
+
+  <!-- 16 -->
+  <h2 id="limits">16 · 已知限制与路线</h2>
+  <h4>限制 / 失败模式</h4>
+  <ul>
+    <li><b>尾延迟下限</b> ~1.4–2.0s（准确模式），受端点静音 + 整段解码 + LLM 串行约束。</li>
+    <li><b>说话人区分</b>为 8 维频谱近似，嘈杂/相似音色下不稳；非生产级 diarization。</li>
+    <li><b>Whisper 短段幻觉</b>：靠短语黑名单 + <code>min_commit</code> 兜底，非语义级。</li>
+    <li><b>16GB 内存</b>限制更大模型（medium/turbo/7B）常驻。</li>
+    <li>伪流式重解码在极长句（&gt;4s）会被 <code>MAX_SEGMENT</code> 强切。</li>
+  </ul>
+  <h4>路线</h4>
+  <ul>
+    <li><b>近期</b>：识别-翻译流水并行；端上更小/更快 LLM；更快端点（自适应静音阈值）。</li>
+    <li><b>中期</b>：多语种（日/韩/西）；专业术语词库；生产级说话人分离。</li>
+    <li><b>远期</b>：定制 AR 眼镜形态；专用低功耗推理芯片；全天候续航。</li>
+  </ul>
+
+  <div class="foot">来源：代码库 <code>backend/</code>（config.py · services/audio_stream_service.py · services/manager_engine.py · services/utterance_service.py · services/translation_manager.py · main.py）与端到端基准（benchmarks_e2e）。运行环境 MacBook M4 · 16GB。所有超参均为当前默认值。</div>
+
+</main>
+</div>
+</body>
+</html>

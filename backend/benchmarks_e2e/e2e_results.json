@@ -1,0 +1,152 @@
+{
+  "overall": {
+    "count": 7,
+    "error_rate_mean": 0.2694,
+    "chrf_mean": 63.16,
+    "first_transcript_ms_mean": 8161.3,
+    "tail_latency_ms_mean": 8653.1,
+    "tail_latency_ms_p95": 11196.0
+  },
+  "by_lang": {
+    "en": {
+      "count": 4,
+      "error_rate_mean": 0.1582,
+      "chrf_mean": 49.68,
+      "first_transcript_ms_mean": 8352.1,
+      "tail_latency_ms_mean": 7449.5,
+      "tail_latency_ms_p95": 10829.6
+    },
+    "zh": {
+      "count": 3,
+      "error_rate_mean": 0.4177,
+      "chrf_mean": 81.14,
+      "first_transcript_ms_mean": 7906.8,
+      "tail_latency_ms_mean": 10258.0,
+      "tail_latency_ms_p95": 10457.6
+    }
+  },
+  "rows": [
+    {
+      "id": "en-01",
+      "lang": "en",
+      "target_lang": "zh",
+      "reference_text": "The meeting will start at nine tomorrow morning.",
+      "reference_translation": "会议将于明天上午九点开始。",
+      "hyp_transcript": "The meeting will start at 9 tomorrow morning.",
+      "hyp_translation": "会议明天早上九点开始。",
+      "audio_s": 2.22,
+      "error_rate": 0.125,
+      "chrf": 31.98,
+      "first_transcript_ms": 9397.1,
+      "tail_latency_ms": 7011.7,
+      "n_transcript_events": 1,
+      "n_translation_events": 1
+    },
+    {
+      "id": "en-02",
+      "lang": "en",
+      "target_lang": "zh",
+      "reference_text": "Our revenue grew fifteen percent this quarter.",
+      "reference_translation": "我们本季度的收入增长了百分之十五。",
+      "hyp_transcript": "Our revenue grew 15 % this quarter.",
+      "hyp_translation": "我们本季度收入增长了15%。",
+      "audio_s": 2.33,
+      "error_rate": 0.2857,
+      "chrf": 34.45,
+      "first_transcript_ms": 7629.7,
+      "tail_latency_ms": 5124.9,
+      "n_transcript_events": 1,
+      "n_translation_events": 1
+    },
+    {
+      "id": "en-03",
+      "lang": "en",
+      "target_lang": "zh",
+      "reference_text": "Please send me the report before Friday.",
+      "reference_translation": "请在周五之前把报告发给我。",
+      "hyp_transcript": "Please send me the report before Friday.",
+      "hyp_translation": "请在周五前把报告发给我。",
+      "audio_s": 2.17,
+      "error_rate": 0.0,
+      "chrf": 66.29,
+      "first_transcript_ms": 8485.7,
+      "tail_latency_ms": 6158.1,
+      "n_transcript_events": 1,
+      "n_translation_events": 1
+    },
+    {
+      "id": "en-04",
+      "lang": "en",
+      "target_lang": "zh",
+      "reference_text": "We cannot ship the product unless the test passes.",
+      "reference_translation": "除非测试通过，否则我们无法发货。",
+      "hyp_transcript": "We cannot ship the product unless the test pass. services.",
+      "hyp_translation": "除非测试通过，否则我们不能发货。 服务。",
+      "audio_s": 2.71,
+      "error_rate": 0.2222,
+      "chrf": 65.98,
+      "first_transcript_ms": 7896.1,
+      "tail_latency_ms": 11503.3,
+      "n_transcript_events": 2,
+      "n_translation_events": 2
+    },
+    {
+      "id": "zh-01",
+      "lang": "zh",
+      "target_lang": "en",
+      "reference_text": "如果明天下雨，会议就取消。",
+      "reference_translation": "If it rains tomorrow, the meeting will be canceled.",
+      "hyp_transcript": "如果 明 天 下 雨, 會 議 就 … 取 消",
+      "hyp_translation": "If it rains tomorrow, the meeting will... be canceled.",
+      "audio_s": 2.95,
+      "error_rate": 0.1818,
+      "chrf": 92.27,
+      "first_transcript_ms": 7624.2,
+      "tail_latency_ms": 10266.1,
+      "n_transcript_events": 2,
+      "n_translation_events": 2
+    },
+    {
+      "id": "zh-02",
+      "lang": "zh",
+      "target_lang": "en",
+      "reference_text": "我们的团队下个月搬到新办公室。",
+      "reference_translation": "Our team will move to the new office next month.",
+      "hyp_transcript": "我们 的 团 队 下 个 月 搬 到 新 办 公 室 工 工 室",
+      "hyp_translation": "Our team is moving to a new office next month. office",
+      "audio_s": 2.92,
+      "error_rate": 0.2143,
+      "chrf": 60.66,
+      "first_transcript_ms": 8266.1,
+      "tail_latency_ms": 10478.9,
+      "n_transcript_events": 2,
+      "n_translation_events": 2
+    },
+    {
+      "id": "zh-03",
+      "lang": "zh",
+      "target_lang": "en",
+      "reference_text": "这个项目的预算不能超过一百万。",
+      "reference_translation": "The budget for this project cannot exceed one million.",
+      "hyp_transcript": "這個 項 目 的 預 算 不能 超 過 100 % 100 萬",
+      "hyp_translation": "The budget for this project cannot exceed 100%. one million",
+      "audio_s": 2.82,
+      "error_rate": 0.8571,
+      "chrf": 90.49,
+      "first_transcript_ms": 7830.2,
+      "tail_latency_ms": 10029.0,
+      "n_transcript_events": 2,
+      "n_translation_events": 2
+    }
+  ],
+  "config": {
+    "server": "http://localhost:8000",
+    "no_realtime": false,
+    "judge": false,
+    "judge_model": "qwen3:8b",
+    "ollama_url": "http://localhost:11434",
+    "limit": 0,
+    "out": "benchmarks_e2e/e2e_results.json",
+    "csv": "benchmarks_e2e/e2e_results.csv"
+  }
+}

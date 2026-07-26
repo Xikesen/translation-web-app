@@ -183,6 +183,39 @@ def prepare_utterance(
     return events, speaker, translation_source_text
 
 
+async def translate_partial(
+    *,
+    source_text: str,
+    source_lang: str,
+    target_lang: str,
+    committed_source_text: str = "",
+    previous_target_text: str = "",
+) -> str | None:
+    """Translate an interim (non-final) segment for live display.
+
+    Does not mutate any speaker/session state. Besides producing an early
+    translation, it warms the translation cache so the eventual final segment
+    (often identical text) is served from cache with ~0ms latency.
+    """
+    normalized = normalize_translation_input(source_text=source_text, source_lang=source_lang)
+    text = normalized.normalized_text
+    if not text:
+        return None
+    src = source_lang if source_lang in SUPPORTED_LANGS else "auto"
+    tgt = target_lang if target_lang in SUPPORTED_LANGS else TARGET_LANG_DEFAULT
+    try:
+        route_result = await translate_with_manager_detailed(
+            source_text=text,
+            source_lang=src,
+            target_lang=tgt,
+            committed_source_text=committed_source_text,
+            previous_target_text=previous_target_text,
+        )
+    except Exception:
+        return None
+    return route_result.translated_text
+
+
 async def build_translation_events(
     session: SessionState,
     speaker: SpeakerState,
@@ -199,11 +232,13 @@ async def build_translation_events(
     try:
         source_lang = speaker.source_lang if speaker.source_lang in SUPPORTED_LANGS else "auto"
         target_lang = session.target_lang if session.target_lang in SUPPORTED_LANGS else TARGET_LANG_DEFAULT
+        previous_target_text = speaker.last_two_lines[-1] if speaker.last_two_lines else ""
         route_result = await translate_with_manager_detailed(
             source_text=translation_source_text,
             source_lang=source_lang,
             target_lang=target_lang,
             committed_source_text=speaker.committed_source_text,
+            previous_target_text=previous_target_text,
         )
         translated_text = route_result.translated_text
         route_name = route_result.route

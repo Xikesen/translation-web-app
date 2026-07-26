@@ -2,6 +2,12 @@ fastapi==0.115.12
 uvicorn[standard]==0.34.0
 httpx==0.28.1
 pydantic==2.10.6
-numpy==2.2.3
-webrtcvad==2.0.10
+numpy==1.26.4
+webrtcvad-wheels==2.0.14
 faster-whisper==1.2.1
+opencc-python-reimplemented==0.1.7
+
+# Apple Silicon (M-series) GPU ASR via MLX/Metal. Installed by start_mac.sh only
+# on macOS; these packages are Apple-Silicon-only, so they are NOT listed here to
+# keep requirements.txt cross-platform:
+#   mlx-whisper  scipy==1.11.4

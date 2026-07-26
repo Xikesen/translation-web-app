@@ -1,0 +1,613 @@
+{
+  "baseline": {
+    "name": "baseline",
+    "model": "gemma-4-e4b:q8_0",
+    "overall": {
+      "count": 24,
+      "chrf_mean": 74.8,
+      "latency_mean_ms": 5364.9,
+      "latency_p50_ms": 5338.6,
+      "latency_p95_ms": 5917.6,
+      "tokens_per_sec_mean": 19.2,
+      "judge_mean": 96.67
+    },
+    "by_direction": {
+      "en2zh": {
+        "count": 12,
+        "chrf_mean": 68.81,
+        "latency_mean_ms": 5442.4,
+        "latency_p50_ms": 5396.3,
+        "latency_p95_ms": 5938.2,
+        "tokens_per_sec_mean": 19.03,
+        "judge_mean": 96.67
+      },
+      "zh2en": {
+        "count": 12,
+        "chrf_mean": 80.79,
+        "latency_mean_ms": 5287.4,
+        "latency_p50_ms": 5333.9,
+        "latency_p95_ms": 5685.4,
+        "tokens_per_sec_mean": 19.38,
+        "judge_mean": 96.67
+      }
+    },
+    "rows": [
+      {
+        "id": "en2zh-01",
+        "direction": "en2zh",
+        "source": "The board will approve the 2026 budget next quarter.",
+        "reference": "董事会将在下个季度批准2026年的预算。",
+        "hypothesis": "董事会将在下个季度批准2026年预算。",
+        "latency_ms": 6303.1,
+        "chrf": 83.05,
+        "judge": 95.0,
+        "tokens_per_sec": 18.08
+      },
+      {
+        "id": "en2zh-02",
+        "direction": "en2zh",
+        "source": "If revenue does not grow, we will not expand the team in March.",
+        "reference": "如果收入没有增长，我们三月份就不会扩充团队。",
+        "hypothesis": "如果收入不增长，我们将在3月不扩建团队。",
+        "latency_ms": 5250.4,
+        "chrf": 27.59,
+        "judge": 90.0,
+        "tokens_per_sec": 18.55
+      },
+      {
+        "id": "en2zh-03",
+        "direction": "en2zh",
+        "source": "Sarah said the launch is delayed by two weeks due to a supply issue.",
+        "reference": "Sarah说由于供应问题，发布推迟了两周。",
+        "hypothesis": "莎拉说，由于供应问题，发布推迟了两周。",
+        "latency_ms": 5218.5,
+        "chrf": 69.59,
+        "judge": 100.0,
+        "tokens_per_sec": 19.42
+      },
+      {
+        "id": "en2zh-04",
+        "direction": "en2zh",
+        "source": "Our Q3 profit rose 15 percent compared with last year.",
+        "reference": "我们第三季度的利润比去年增长了15%。",
+        "hypothesis": "我们第三季度的利润比去年增长了15%。",
+        "latency_ms": 5497.2,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 18.56
+      },
+      {
+        "id": "en2zh-05",
+        "direction": "en2zh",
+        "source": "Please review the contract before the meeting on Friday afternoon.",
+        "reference": "请在周五下午开会之前审阅这份合同。",
+        "hypothesis": "请在周五下午的会议前审阅合同。",
+        "latency_ms": 5466.6,
+        "chrf": 37.28,
+        "judge": 95.0,
+        "tokens_per_sec": 19.35
+      },
+      {
+        "id": "en2zh-06",
+        "direction": "en2zh",
+        "source": "The new model reduces latency, but it requires more memory.",
+        "reference": "新模型降低了延迟，但需要更多内存。",
+        "hypothesis": "新模型降低了延迟，但它需要更多的内存。",
+        "latency_ms": 5155.9,
+        "chrf": 65.86,
+        "judge": 95.0,
+        "tokens_per_sec": 19.24
+      },
+      {
+        "id": "en2zh-07",
+        "direction": "en2zh",
+        "source": "We cannot ship the product unless the safety test passes.",
+        "reference": "除非安全测试通过，否则我们无法发货。",
+        "hypothesis": "除非安全测试通过，否则我们不能发货。",
+        "latency_ms": 5480.6,
+        "chrf": 73.12,
+        "judge": 95.0,
+        "tokens_per_sec": 18.5
+      },
+      {
+        "id": "en2zh-08",
+        "direction": "en2zh",
+        "source": "John will present the results at 9 a.m. tomorrow in Room 204.",
+        "reference": "John将于明天上午9点在204房间汇报结果。",
+        "hypothesis": "John 将于明天上午 9 点在 204 房间展示结果。",
+        "latency_ms": 5559.4,
+        "chrf": 79.92,
+        "judge": 100.0,
+        "tokens_per_sec": 18.67
+      },
+      {
+        "id": "en2zh-09",
+        "direction": "en2zh",
+        "source": "The discount applies only to orders over five hundred dollars.",
+        "reference": "该折扣仅适用于超过五百美元的订单。",
+        "hypothesis": "折扣仅适用于订单金额超过五百美元的订单。",
+        "latency_ms": 5138.9,
+        "chrf": 71.19,
+        "judge": 95.0,
+        "tokens_per_sec": 19.56
+      },
+      {
+        "id": "en2zh-10",
+        "direction": "en2zh",
+        "source": "Honestly, I think we should delay the decision until the data is clear.",
+        "reference": "老实说，我认为我们应该等数据明确之后再做决定。",
+        "hypothesis": "老实说，我认为我们应该等到数据清晰后再做决定。",
+        "latency_ms": 5326.1,
+        "chrf": 64.66,
+        "judge": 95.0,
+        "tokens_per_sec": 19.43
+      },
+      {
+        "id": "en2zh-11",
+        "direction": "en2zh",
+        "source": "She did not agree with the proposal, and she asked for more details.",
+        "reference": "她不同意这个提案，并要求提供更多细节。",
+        "hypothesis": "她不同意该提案，并要求提供更多细节。",
+        "latency_ms": 5639.5,
+        "chrf": 73.41,
+        "judge": 100.0,
+        "tokens_per_sec": 19.18
+      },
+      {
+        "id": "en2zh-12",
+        "direction": "en2zh",
+        "source": "The server crashed twice last night, so we rolled back the update.",
+        "reference": "服务器昨晚崩溃了两次，所以我们回滚了更新。",
+        "hypothesis": "昨晚服务器崩溃了两次，所以我们回滚了更新。",
+        "latency_ms": 5272.1,
+        "chrf": 80.08,
+        "judge": 100.0,
+        "tokens_per_sec": 19.79
+      },
+      {
+        "id": "zh2en-01",
+        "direction": "zh2en",
+        "source": "如果明天下雨，会议就改到下周一。",
+        "reference": "If it rains tomorrow, the meeting will be moved to next Monday.",
+        "hypothesis": "If it rains tomorrow, the meeting will be moved to next Monday.",
+        "latency_ms": 5269.3,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 19.4
+      },
+      {
+        "id": "zh2en-02",
+        "direction": "zh2en",
+        "source": "我们第二季度的销售额增长了百分之二十。",
+        "reference": "Our second-quarter sales grew by 20 percent.",
+        "hypothesis": "Our second quarter sales increased by twenty percent.",
+        "latency_ms": 4711.3,
+        "chrf": 60.41,
+        "judge": 95.0,
+        "tokens_per_sec": 20.35
+      },
+      {
+        "id": "zh2en-03",
+        "direction": "zh2en",
+        "source": "张总说这个项目预算不能超过一百万。",
+        "reference": "Mr. Zhang said the project budget cannot exceed one million.",
+        "hypothesis": "Mr. Zhang said the budget for this project cannot exceed 1 million.",
+        "latency_ms": 5390.8,
+        "chrf": 73.23,
+        "judge": 95.0,
+        "tokens_per_sec": 19.27
+      },
+      {
+        "id": "zh2en-04",
+        "direction": "zh2en",
+        "source": "除非客户确认，否则我们不会开始生产。",
+        "reference": "Unless the client confirms, we will not start production.",
+        "hypothesis": "Unless the client confirms, we will not start production.",
+        "latency_ms": 5113.3,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 19.84
+      },
+      {
+        "id": "zh2en-05",
+        "direction": "zh2en",
+        "source": "请在周三之前把报告发给我。",
+        "reference": "Please send me the report before Wednesday.",
+        "hypothesis": "Please send me the report before Wednesday.",
+        "latency_ms": 4970.6,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 20.24
+      },
+      {
+        "id": "zh2en-06",
+        "direction": "zh2en",
+        "source": "新版本修复了三个严重的漏洞，但还没有完全测试。",
+        "reference": "The new version fixed three critical bugs, but it has not been fully tested.",
+        "hypothesis": "The new version fixed three serious vulnerabilities, but has not been fully tested yet.",
+        "latency_ms": 5377.1,
+        "chrf": 71.21,
+        "judge": 95.0,
+        "tokens_per_sec": 19.27
+      },
+      {
+        "id": "zh2en-07",
+        "direction": "zh2en",
+        "source": "他没有反对这个计划，只是希望再等一周。",
+        "reference": "He did not oppose the plan; he just wanted to wait one more week.",
+        "hypothesis": "He didn't object to the plan, he just hoped to wait another week.",
+        "latency_ms": 5455.2,
+        "chrf": 44.81,
+        "judge": 95.0,
+        "tokens_per_sec": 19.28
+      },
+      {
+        "id": "zh2en-08",
+        "direction": "zh2en",
+        "source": "我们的团队将于五月十号搬到新办公室。",
+        "reference": "Our team will move to the new office on May 10th.",
+        "hypothesis": "Our team will move to the new office on May 10th.",
+        "latency_ms": 5351.1,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 18.81
+      },
+      {
+        "id": "zh2en-09",
+        "direction": "zh2en",
+        "source": "这次折扣只针对老客户，新客户不适用。",
+        "reference": "This discount is only for existing customers and does not apply to new ones.",
+        "hypothesis": "This discount is only for old customers, not applicable to new customers.",
+        "latency_ms": 5087.7,
+        "chrf": 56.25,
+        "judge": 95.0,
+        "tokens_per_sec": 18.76
+      },
+      {
+        "id": "zh2en-10",
+        "direction": "zh2en",
+        "source": "说实话，我觉得这个方案的风险太高了。",
+        "reference": "Honestly, I think the risk of this plan is too high.",
+        "hypothesis": "To be honest, I think the risk of this plan is too high.",
+        "latency_ms": 5316.6,
+        "chrf": 87.51,
+        "judge": 95.0,
+        "tokens_per_sec": 19.15
+      },
+      {
+        "id": "zh2en-11",
+        "direction": "zh2en",
+        "source": "李娜负责市场，王强负责技术。",
+        "reference": "Li Na is in charge of marketing, and Wang Qiang is in charge of technology.",
+        "hypothesis": "Li Na is in charge of marketing, Wang Qiang is in charge of technology.",
+        "latency_ms": 5439.4,
+        "chrf": 91.44,
+        "judge": 95.0,
+        "tokens_per_sec": 19.06
+      },
+      {
+        "id": "zh2en-12",
+        "direction": "zh2en",
+        "source": "如果价格再涨，我们就考虑换供应商。",
+        "reference": "If the price rises again, we will consider switching suppliers.",
+        "hypothesis": "If the price rises again, we will consider changing suppliers.",
+        "latency_ms": 5966.7,
+        "chrf": 84.63,
+        "judge": 95.0,
+        "tokens_per_sec": 19.14
+      }
+    ]
+  },
+  "skill": {
+    "name": "skill",
+    "model": "gemma-4-e4b:q8_0",
+    "overall": {
+      "count": 24,
+      "chrf_mean": 75.47,
+      "latency_mean_ms": 6389.1,
+      "latency_p50_ms": 5820.8,
+      "latency_p95_ms": 9915.6,
+      "tokens_per_sec_mean": 18.94,
+      "judge_mean": 96.88
+    },
+    "by_direction": {
+      "en2zh": {
+        "count": 12,
+        "chrf_mean": 68.36,
+        "latency_mean_ms": 6997.7,
+        "latency_p50_ms": 5863.0,
+        "latency_p95_ms": 10782.6,
+        "tokens_per_sec_mean": 18.87,
+        "judge_mean": 97.08
+      },
+      "zh2en": {
+        "count": 12,
+        "chrf_mean": 82.59,
+        "latency_mean_ms": 5780.6,
+        "latency_p50_ms": 5769.0,
+        "latency_p95_ms": 6274.0,
+        "tokens_per_sec_mean": 19.01,
+        "judge_mean": 96.67
+      }
+    },
+    "rows": [
+      {
+        "id": "en2zh-01",
+        "direction": "en2zh",
+        "source": "The board will approve the 2026 budget next quarter.",
+        "reference": "董事会将在下个季度批准2026年的预算。",
+        "hypothesis": "董事会将在下个季度批准2026年的预算。",
+        "latency_ms": 5816.9,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 19.19
+      },
+      {
+        "id": "en2zh-02",
+        "direction": "en2zh",
+        "source": "If revenue does not grow, we will not expand the team in March.",
+        "reference": "如果收入没有增长，我们三月份就不会扩充团队。",
+        "hypothesis": "如果收入没有增长，我们三月就不会扩大团队。",
+        "latency_ms": 5695.6,
+        "chrf": 66.81,
+        "judge": 95.0,
+        "tokens_per_sec": 19.06
+      },
+      {
+        "id": "en2zh-03",
+        "direction": "en2zh",
+        "source": "Sarah said the launch is delayed by two weeks due to a supply issue.",
+        "reference": "Sarah说由于供应问题，发布推迟了两周。",
+        "hypothesis": "莎拉说，由于供应问题，发布推迟了两周。",
+        "latency_ms": 5890.8,
+        "chrf": 69.59,
+        "judge": 100.0,
+        "tokens_per_sec": 19.18
+      },
+      {
+        "id": "en2zh-04",
+        "direction": "en2zh",
+        "source": "Our Q3 profit rose 15 percent compared with last year.",
+        "reference": "我们第三季度的利润比去年增长了15%。",
+        "hypothesis": "我们第三季度的利润比去年增长了15%。",
+        "latency_ms": 5749.0,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 19.22
+      },
+      {
+        "id": "en2zh-05",
+        "direction": "en2zh",
+        "source": "Please review the contract before the meeting on Friday afternoon.",
+        "reference": "请在周五下午开会之前审阅这份合同。",
+        "hypothesis": "请在周五下午会议前审阅合同。",
+        "latency_ms": 6283.1,
+        "chrf": 37.78,
+        "judge": 95.0,
+        "tokens_per_sec": 18.8
+      },
+      {
+        "id": "en2zh-06",
+        "direction": "en2zh",
+        "source": "The new model reduces latency, but it requires more memory.",
+        "reference": "新模型降低了延迟，但需要更多内存。",
+        "hypothesis": "新模型降低了延迟，但它需要更多的内存。",
+        "latency_ms": 9509.2,
+        "chrf": 65.86,
+        "judge": 95.0,
+        "tokens_per_sec": 18.58
+      },
+      {
+        "id": "en2zh-07",
+        "direction": "en2zh",
+        "source": "We cannot ship the product unless the safety test passes.",
+        "reference": "除非安全测试通过，否则我们无法发货。",
+        "hypothesis": "除非安全测试通过，否则我们不能发货。",
+        "latency_ms": 5939.0,
+        "chrf": 73.12,
+        "judge": 95.0,
+        "tokens_per_sec": 18.8
+      },
+      {
+        "id": "en2zh-08",
+        "direction": "en2zh",
+        "source": "John will present the results at 9 a.m. tomorrow in Room 204.",
+        "reference": "John将于明天上午9点在204房间汇报结果。",
+        "hypothesis": "约翰明天上午9点在204房间展示结果。",
+        "latency_ms": 5815.8,
+        "chrf": 52.48,
+        "judge": 100.0,
+        "tokens_per_sec": 18.09
+      },
+      {
+        "id": "en2zh-09",
+        "direction": "en2zh",
+        "source": "The discount applies only to orders over five hundred dollars.",
+        "reference": "该折扣仅适用于超过五百美元的订单。",
+        "hypothesis": "折扣仅适用于五百美元以上的订单。",
+        "latency_ms": 11754.5,
+        "chrf": 44.56,
+        "judge": 95.0,
+        "tokens_per_sec": 19.06
+      },
+      {
+        "id": "en2zh-10",
+        "direction": "en2zh",
+        "source": "Honestly, I think we should delay the decision until the data is clear.",
+        "reference": "老实说，我认为我们应该等数据明确之后再做决定。",
+        "hypothesis": "老实说，我认为我们应该等到数据清晰后再做决定。",
+        "latency_ms": 9987.3,
+        "chrf": 64.66,
+        "judge": 95.0,
+        "tokens_per_sec": 18.21
+      },
+      {
+        "id": "en2zh-11",
+        "direction": "en2zh",
+        "source": "She did not agree with the proposal, and she asked for more details.",
+        "reference": "她不同意这个提案，并要求提供更多细节。",
+        "hypothesis": "她不同意该提案，并要求更多细节。",
+        "latency_ms": 5695.4,
+        "chrf": 45.44,
+        "judge": 95.0,
+        "tokens_per_sec": 19.13
+      },
+      {
+        "id": "en2zh-12",
+        "direction": "en2zh",
+        "source": "The server crashed twice last night, so we rolled back the update.",
+        "reference": "服务器昨晚崩溃了两次，所以我们回滚了更新。",
+        "hypothesis": "服务器昨晚崩溃了两次，所以我们回滚了更新。",
+        "latency_ms": 5835.2,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 19.1
+      },
+      {
+        "id": "zh2en-01",
+        "direction": "zh2en",
+        "source": "如果明天下雨，会议就改到下周一。",
+        "reference": "If it rains tomorrow, the meeting will be moved to next Monday.",
+        "hypothesis": "If it rains tomorrow, the meeting will be moved to next Monday.",
+        "latency_ms": 5780.6,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 18.79
+      },
+      {
+        "id": "zh2en-02",
+        "direction": "zh2en",
+        "source": "我们第二季度的销售额增长了百分之二十。",
+        "reference": "Our second-quarter sales grew by 20 percent.",
+        "hypothesis": "Our second quarter sales increased by twenty percent.",
+        "latency_ms": 5220.5,
+        "chrf": 60.41,
+        "judge": 95.0,
+        "tokens_per_sec": 19.74
+      },
+      {
+        "id": "zh2en-03",
+        "direction": "zh2en",
+        "source": "张总说这个项目预算不能超过一百万。",
+        "reference": "Mr. Zhang said the project budget cannot exceed one million.",
+        "hypothesis": "Mr. Zhang said this project budget cannot exceed one million.",
+        "latency_ms": 5725.0,
+        "chrf": 92.27,
+        "judge": 95.0,
+        "tokens_per_sec": 19.33
+      },
+      {
+        "id": "zh2en-04",
+        "direction": "zh2en",
+        "source": "除非客户确认，否则我们不会开始生产。",
+        "reference": "Unless the client confirms, we will not start production.",
+        "hypothesis": "Unless the client confirms, we will not start production.",
+        "latency_ms": 5709.0,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 19.53
+      },
+      {
+        "id": "zh2en-05",
+        "direction": "zh2en",
+        "source": "请在周三之前把报告发给我。",
+        "reference": "Please send me the report before Wednesday.",
+        "hypothesis": "Please send me the report before Wednesday.",
+        "latency_ms": 5757.4,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 19.53
+      },
+      {
+        "id": "zh2en-06",
+        "direction": "zh2en",
+        "source": "新版本修复了三个严重的漏洞，但还没有完全测试。",
+        "reference": "The new version fixed three critical bugs, but it has not been fully tested.",
+        "hypothesis": "The new version fixed three serious vulnerabilities, but has not been fully tested yet.",
+        "latency_ms": 5948.0,
+        "chrf": 71.21,
+        "judge": 95.0,
+        "tokens_per_sec": 18.87
+      },
+      {
+        "id": "zh2en-07",
+        "direction": "zh2en",
+        "source": "他没有反对这个计划，只是希望再等一周。",
+        "reference": "He did not oppose the plan; he just wanted to wait one more week.",
+        "hypothesis": "He didn't oppose this plan, just hoped to wait another week.",
+        "latency_ms": 5547.8,
+        "chrf": 47.38,
+        "judge": 95.0,
+        "tokens_per_sec": 19.09
+      },
+      {
+        "id": "zh2en-08",
+        "direction": "zh2en",
+        "source": "我们的团队将于五月十号搬到新办公室。",
+        "reference": "Our team will move to the new office on May 10th.",
+        "hypothesis": "Our team will move to the new office on May 10th.",
+        "latency_ms": 5824.7,
+        "chrf": 100.0,
+        "judge": 100.0,
+        "tokens_per_sec": 18.98
+      },
+      {
+        "id": "zh2en-09",
+        "direction": "zh2en",
+        "source": "这次折扣只针对老客户，新客户不适用。",
+        "reference": "This discount is only for existing customers and does not apply to new ones.",
+        "hypothesis": "This discount is only for old customers, not applicable to new customers.",
+        "latency_ms": 5917.3,
+        "chrf": 56.25,
+        "judge": 95.0,
+        "tokens_per_sec": 17.47
+      },
+      {
+        "id": "zh2en-10",
+        "direction": "zh2en",
+        "source": "说实话，我觉得这个方案的风险太高了。",
+        "reference": "Honestly, I think the risk of this plan is too high.",
+        "hypothesis": "To be honest, I think the risk of this plan is too high.",
+        "latency_ms": 6213.5,
+        "chrf": 87.51,
+        "judge": 95.0,
+        "tokens_per_sec": 18.84
+      },
+      {
+        "id": "zh2en-11",
+        "direction": "zh2en",
+        "source": "李娜负责市场，王强负责技术。",
+        "reference": "Li Na is in charge of marketing, and Wang Qiang is in charge of technology.",
+        "hypothesis": "Li Na is in charge of marketing, Wang Qiang is in charge of technology.",
+        "latency_ms": 6348.0,
+        "chrf": 91.44,
+        "judge": 95.0,
+        "tokens_per_sec": 18.79
+      },
+      {
+        "id": "zh2en-12",
+        "direction": "zh2en",
+        "source": "如果价格再涨，我们就考虑换供应商。",
+        "reference": "If the price rises again, we will consider switching suppliers.",
+        "hypothesis": "If the price rises again, we will consider changing suppliers.",
+        "latency_ms": 5375.8,
+        "chrf": 84.63,
+        "judge": 95.0,
+        "tokens_per_sec": 19.21
+      }
+    ]
+  },
+  "config": {
+    "model": "gemma-4-e4b:q8_0",
+    "baseline_model": null,
+    "skill_model": null,
+    "repeats": 1,
+    "judge": true,
+    "judge_model": "qwen3:8b",
+    "data": "/Users/coco/Desktop/latest glass/ooni-glass/backend/benchmarks/data/zh_en_pairs.json",
+    "limit": 0,
+    "out": "benchmarks/results_qwenjudge.json",
+    "csv": "benchmarks/results_qwenjudge.csv",
+    "plot": "benchmarks/results_qwenjudge.png"
+  }
+}

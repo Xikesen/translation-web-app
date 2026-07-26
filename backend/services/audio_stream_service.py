@@ -1,7 +1,8 @@
 import asyncio
 import math
+import re
 from array import array
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import threading
 from typing import Any
 
@@ -15,19 +16,25 @@ except Exception:
 
 from config import (
     AUDIO_ENERGY_THRESHOLD,
+    AUDIO_VAD_BATCH_MS,
     AUDIO_VOICED_RATIO_THRESHOLD,
     ASR_BACKEND,
     ASR_BATCH_MS,
     ASR_COMMIT_SILENCE_MS,
     ASR_COMPUTE_TYPE,
     ASR_DEVICE,
+    ASR_FAST_MODEL_NAME,
+    ASR_FAST_TARGET_LANGS,
+    ASR_HYBRID_BY_TARGET,
     ASR_LANGUAGE_HINT,
+    ASR_REUSE_PARTIAL_AS_FINAL,
     ASR_MAX_SEGMENT_MS,
     ASR_MIN_COMMIT_MS,
     ASR_MODEL_NAME,
     MAX_SPEAKERS,
     SPEAKER_LABELS,
 )
+from services.zh_text import to_simplified
 from state import SessionState
 
 
@@ -176,6 +183,11 @@ class _FasterWhisperStreamingASR:
         self._last_frame_end_ms: int | None = None
         self._last_partial_signature: tuple[str, bool] | None = None
         self._previous_tokens: list[str] = []
+        # Fast-path finalization: reuse the most recent partial as the final
+        # result when no new speech arrived since it was decoded (only trailing
+        # silence), avoiding a redundant full re-decode at endpoint.
+        self._last_partial_result: _ASRPartialResult | None = None
+        self._voiced_since_decode_ms = 0
 
     def has_pending_audio(self) -> bool:
         return bool(self._buffer)
@@ -198,6 +210,25 @@ class _FasterWhisperStreamingASR:
         if not should_decode:
             return []
 
+        # Fast path: if we already have a recent partial and no new speech has
+        # arrived since it was decoded (only trailing silence), promote it to
+        # final instead of re-decoding the whole buffer. This removes ~one full
+        # decode (~300-400ms) from the end-of-sentence latency.
+        if (
+            ASR_REUSE_PARTIAL_AS_FINAL
+            and should_finalize
+            and self._voiced_since_decode_ms == 0
+            and self._last_partial_result is not None
+        ):
+            final = replace(
+                self._last_partial_result,
+                is_final=True,
+                stability=1.0,
+                emitted_ts_ms=frame.ts_end_ms,
+            )
+            self._reset_active_utterance()
+            return [final]
+
         decode_reason = "endpoint_silence" if should_finalize else "decode_interval"
         partial = self._decode_current_buffer(
             default_emitted_ts_ms=frame.ts_end_ms,
@@ -205,9 +236,12 @@ class _FasterWhisperStreamingASR:
             decode_reason=decode_reason,
         )
         self._buffered_since_decode_ms = 0
+        self._voiced_since_decode_ms = 0
         if partial is None:
             return []
 
+        if not should_finalize:
+            self._last_partial_result = partial
         if should_finalize:
             self._reset_active_utterance()
         return [partial]
@@ -244,7 +278,7 @@ class _FasterWhisperStreamingASR:
             language=self.language_hint or None,
             beam_size=1,
             best_of=1,
-            word_timestamps=True,
+            word_timestamps=False,
             vad_filter=False,
             condition_on_previous_text=False,
             no_speech_threshold=0.6,
@@ -285,6 +319,7 @@ class _FasterWhisperStreamingASR:
             self._trailing_silence_ms += frame_duration_ms
             return
         self._trailing_silence_ms = 0
+        self._voiced_since_decode_ms += frame_duration_ms
 
     def _reset_active_utterance(self) -> None:
         self._utterance_index += 1
@@ -297,9 +332,86 @@ class _FasterWhisperStreamingASR:
         self._last_frame_end_ms = None
         self._last_partial_signature = None
         self._previous_tokens = []
+        self._last_partial_result = None
+        self._voiced_since_decode_ms = 0
 
     def _new_utterance_id(self) -> str:
         return f"fw-local:utt-{self._utterance_index}"
+
+
+class _MlxWhisperStreamingASR(_FasterWhisperStreamingASR):
+    """Whisper on the Apple GPU via MLX (Metal).
+
+    Reuses the buffering/endpointing logic of the faster-whisper streaming ASR
+    and only swaps the decode call for ``mlx_whisper.transcribe`` so decoding
+    runs on the Mac GPU instead of the CPU. ``model_name`` is an MLX HF repo,
+    e.g. ``mlx-community/whisper-small-mlx``.
+    """
+
+    backend_name = "mlx_whisper_local"
+
+    def _new_utterance_id(self) -> str:
+        return f"mlx-local:utt-{self._utterance_index}"
+
+    def _decode_current_buffer(
+        self,
+        *,
+        default_emitted_ts_ms: int | None,
+        is_final: bool,
+        decode_reason: str,
+    ) -> _ASRPartialResult | None:
+        if not self._buffer:
+            return None
+
+        import mlx_whisper  # imported lazily so the dep is only needed for this backend
+
+        audio = _pcm16_to_audio_input(bytes(self._buffer))
+        result = mlx_whisper.transcribe(
+            audio,
+            path_or_hf_repo=self.model_name,
+            language=self.language_hint or None,
+            fp16=True,
+            verbose=False,
+            # Anti-drift / anti-hallucination: never condition on prior text and
+            # reject repetitive / low-confidence decodes (mirrors the settings on
+            # the faster-whisper path).
+            condition_on_previous_text=False,
+            temperature=0.0,
+            no_speech_threshold=0.6,
+            logprob_threshold=-1.0,
+            compression_ratio_threshold=2.4,
+        )
+        text = str(result.get("text", "") or "").strip()
+        if not text:
+            return None
+
+        signature = (text, is_final)
+        if signature == self._last_partial_signature:
+            return None
+        self._last_partial_signature = signature
+
+        segments = result.get("segments") or []
+        confidences = [
+            _avg_logprob_to_confidence(float(seg.get("avg_logprob", -1.0) or -1.0))
+            for seg in segments
+        ]
+        source_confidence = sum(confidences) / len(confidences) if confidences else 0.7
+
+        tokens = text.split() or [text]
+        token_conf = [source_confidence] * len(tokens)
+        stability = 1.0 if is_final else _stable_prefix_ratio(self._previous_tokens, tokens)
+        self._previous_tokens = tokens.copy()
+        source_lang = str(result.get("language", "") or "unknown").lower()
+        return _ASRPartialResult(
+            text=text,
+            token_conf=token_conf,
+            is_final=is_final,
+            utterance_id=self._active_utterance_id,
+            stability=stability,
+            emitted_ts_ms=default_emitted_ts_ms,
+            source_lang=source_lang,
+            source_confidence=source_confidence,
+        )
 
 
 class _TransformersWhisperStreamingASR:
@@ -499,7 +611,9 @@ class RealtimeAudioPipeline:
     def __init__(self) -> None:
         self.sample_rate = 16000
         self.frame_ms = 20
-        self.batch_ms = ASR_BATCH_MS
+        # VAD/endpoint evaluation cadence (fine); decoupled from the ASR decode
+        # interval (ASR_BATCH_MS) so end-of-speech is detected quickly.
+        self.batch_ms = AUDIO_VAD_BATCH_MS
         self.frame_samples = int(self.sample_rate * self.frame_ms / 1000)
         self.frame_bytes = self.frame_samples * 2
         self.frames_per_batch = max(1, int(self.batch_ms / self.frame_ms))
@@ -510,6 +624,9 @@ class RealtimeAudioPipeline:
         self.tracker = _SpeakerTracker()
         self.stream_cursor_ms = 0
         self.speaker_streams: dict[str, _SpeakerStreamingState] = {}
+        # Session target language, used for hybrid ASR model routing. Updated by
+        # process_audio_chunk before each push.
+        self.target_lang = "en"
 
     def _split_frames(self, chunk: bytes) -> list[bytes]:
         frames: list[bytes] = []
@@ -541,6 +658,24 @@ class RealtimeAudioPipeline:
                 asr = _FasterWhisperStreamingASR(
                     model_name=ASR_MODEL_NAME,
                     language_hint=ASR_LANGUAGE_HINT,
+                    device=ASR_DEVICE,
+                    compute_type=ASR_COMPUTE_TYPE,
+                    decode_interval_ms=ASR_BATCH_MS,
+                    endpoint_silence_ms=ASR_COMMIT_SILENCE_MS,
+                    min_commit_ms=ASR_MIN_COMMIT_MS,
+                    max_segment_ms=ASR_MAX_SEGMENT_MS,
+                )
+            elif ASR_BACKEND == "mlx_whisper_local":
+                # Hybrid routing: when the target is Chinese the source is a
+                # non-Chinese language (English), so use the faster model with a
+                # fixed language hint; otherwise use the accurate model so
+                # Chinese recognition is not degraded.
+                use_fast = ASR_HYBRID_BY_TARGET and self.target_lang in ASR_FAST_TARGET_LANGS
+                mlx_model = ASR_FAST_MODEL_NAME if use_fast else ASR_MODEL_NAME
+                mlx_lang_hint = "en" if use_fast else ASR_LANGUAGE_HINT
+                asr = _MlxWhisperStreamingASR(
+                    model_name=mlx_model,
+                    language_hint=mlx_lang_hint,
                     device=ASR_DEVICE,
                     compute_type=ASR_COMPUTE_TYPE,
                     decode_interval_ms=ASR_BATCH_MS,
@@ -632,7 +767,7 @@ class RealtimeAudioPipeline:
         transcribed: list[TranscribedChunk] = []
         for speaker_id, state in self.speaker_streams.items():
             for partial in state.asr.flush():
-                chunk = _final_partial_to_chunk(speaker_id, partial)
+                chunk = _partial_result_to_chunk(speaker_id, partial)
                 if chunk is not None:
                     transcribed.append(chunk)
         return transcribed
@@ -657,20 +792,46 @@ class RealtimeAudioPipeline:
         )
         chunks: list[TranscribedChunk] = []
         for partial in stream.asr.push_frame(frame):
-            chunk = _final_partial_to_chunk(speaker_id, partial)
+            chunk = _partial_result_to_chunk(speaker_id, partial)
             if chunk is not None:
                 chunks.append(chunk)
         return chunks
 
 
-def _final_partial_to_chunk(
+_HALLUCINATION_NORMALIZED = {
+    # Whisper's well-known artifacts on near-silent / very short audio.
+    "thankyou", "thankyouverymuch", "thanksforwatching", "thankyouforwatching",
+    "pleasesubscribe", "subscribe", "byebye", "bye", "you", "thankyouall",
+    "谢谢", "谢谢你", "谢谢大家", "谢谢观看", "谢谢收看", "请点赞订阅",
+    "请不吝点赞订阅转发打赏支持明镜与点点栏目", "字幕", "下次见", "我们下次再见",
+    "小星大追随下次见", "明镜与点点栏目",
+}
+
+
+def _normalize_for_hallucination(text: str) -> str:
+    return re.sub(r"[\s\.,!?，。！？、~\-'\"]+", "", text.strip().lower())
+
+
+def _is_probable_hallucination(text: str) -> bool:
+    """True for short segments equal to a known Whisper hallucination phrase.
+
+    Only very short segments are filtered so legitimate content is never dropped.
+    """
+    norm = _normalize_for_hallucination(text)
+    if not norm or len(norm) > 16:
+        return False
+    return norm in _HALLUCINATION_NORMALIZED
+
+
+def _partial_result_to_chunk(
     speaker_id: str,
     partial: _ASRPartialResult,
 ) -> TranscribedChunk | None:
-    if not partial.is_final:
-        return None
-    source_text = partial.text.strip()
+    source_text = to_simplified(partial.text.strip())
     if not source_text:
+        return None
+    # Drop final segments that are just a known hallucination phrase.
+    if partial.is_final and _is_probable_hallucination(source_text):
         return None
     confidence = sum(partial.token_conf) / len(partial.token_conf) if partial.token_conf else partial.source_confidence
     return TranscribedChunk(
@@ -959,4 +1120,5 @@ def remove_pipeline(session_id: str) -> None:
 
 async def process_audio_chunk(session: SessionState, chunk_bytes: bytes) -> list[TranscribedChunk]:
     pipeline = get_pipeline(session.session_id)
+    pipeline.target_lang = getattr(session, "target_lang", None) or "en"
     return await asyncio.to_thread(pipeline.push_chunk, chunk_bytes)

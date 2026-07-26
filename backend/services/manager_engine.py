@@ -35,6 +35,7 @@ from config import (
     TRANSLATION_TOP_P,
 )
 from services.manager_types import ContextPack, SourceState, WritePlan
+from services.zh_text import to_simplified
 
 
 PRESERVE_TERMS = ("ai agent",)
@@ -48,6 +49,17 @@ class OllamaManagerTranslatorEngine:
         self.base_url = OLLAMA_URL
         self.timeout_s = OLLAMA_TIMEOUT_SECONDS
         self.keep_alive = OLLAMA_KEEP_ALIVE
+        self._client: httpx.AsyncClient | None = None
+
+    def _get_client(self) -> httpx.AsyncClient:
+        # Reuse one client (keep-alive connection pool) instead of reconnecting
+        # on every call; matters now that interim segments are also translated.
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                timeout=self.timeout_s,
+                limits=httpx.Limits(max_keepalive_connections=4, keepalive_expiry=120.0),
+            )
+        return self._client
 
     async def generate(
         self,
@@ -57,6 +69,7 @@ class OllamaManagerTranslatorEngine:
         context_pack: ContextPack,
         source_lang: str,
         target_lang: str,
+        previous_target_text: str = "",
     ) -> tuple[str, dict[str, object], float]:
         started = time.perf_counter()
         text = source_state.raw_text.strip()
@@ -85,6 +98,7 @@ class OllamaManagerTranslatorEngine:
                         source_lang=source_lang,
                         target_lang=target_lang,
                         source_text=text_for_prompt,
+                        previous_target_text=previous_target_text,
                     ),
                 },
             ],
@@ -97,14 +111,16 @@ class OllamaManagerTranslatorEngine:
                 "num_predict": max(96, TRANSLATION_MAX_NEW_TOKENS),
             },
         }
-        async with httpx.AsyncClient(timeout=self.timeout_s) as client:
-            response = await client.post(f"{self.base_url}/api/chat", json=payload)
-            response.raise_for_status()
-            data = response.json()
+        client = self._get_client()
+        response = await client.post(f"{self.base_url}/api/chat", json=payload)
+        response.raise_for_status()
+        data = response.json()
         translated = str(data.get("message", {}).get("content", "")).strip()
         if not translated:
             raise RuntimeError("empty translation result from ollama manager engine")
         translated = _restore_term_placeholders(translated, placeholders)
+        if target_lang == "zh":
+            translated = to_simplified(translated)
         latency_ms = round((time.perf_counter() - started) * 1000, 2)
         return translated, self._meta(write_plan.mode, latency_ms), latency_ms
 
@@ -112,13 +128,19 @@ class OllamaManagerTranslatorEngine:
         source_name = LANG_DISPLAY_NAMES.get(source_lang, "Auto-detected language")
         target_name = LANG_DISPLAY_NAMES.get(target_lang, target_lang)
         preserve_terms_hint = ", ".join(PRESERVE_TERMS)
+        zh_rule = (
+            "Write only Simplified Chinese (简体中文), never Traditional. "
+            if target_lang == "zh"
+            else ""
+        )
+        # Kept short on purpose: a long system prompt inflates prefill/latency.
         return (
-            "You are a low-latency subtitle translation engine for streaming speech.\n"
-            f"Translate from {source_name} to {target_name}.\n"
-            "Return only the translated subtitle text.\n"
-            "Preserve named entities, dates, numbers, negation, conditions, punctuation, and units faithfully.\n"
-            "Do not explain, annotate, add notes, or invent missing content.\n"
-            f"Always preserve these terms exactly when present: {preserve_terms_hint}."
+            f"You are a real-time interpreter. Translate from {source_name} to {target_name}. "
+            + zh_rule
+            + f"Use natural, fluent {target_name} word order and translate the meaning, not word for word. "
+            "Preserve names, numbers, dates, units, and negation. "
+            f"Keep these terms exactly: {preserve_terms_hint}. "
+            "Output only the translation, nothing else."
         )
 
     def _build_user_prompt(
@@ -130,37 +152,15 @@ class OllamaManagerTranslatorEngine:
         source_lang: str,
         target_lang: str,
         source_text: str,
+        previous_target_text: str,
     ) -> str:
-        glossary_lines = "\n".join(f"- {src} => {dst}" for src, dst in sorted(context_pack.glossary.items()))
-        blocked_text = ", ".join(write_plan.blocked_spans) if write_plan.blocked_spans else "none"
-        entity_text = ", ".join(source_state.entities or context_pack.entities) or "(none)"
-        temporal_text = ", ".join(source_state.temporal_markers) or "(none)"
-        number_text = ", ".join(source_state.numbers) or "(none)"
-        negation_text = ", ".join(source_state.negations) or "(none)"
-        condition_text = ", ".join(source_state.conditions) or "(none)"
-        prompt_lines = [
-            f"Write mode: {write_plan.mode}",
-            f"Blocked high-risk spans: {blocked_text}",
-            f"Source language code: {source_lang}",
-            f"Target language code: {target_lang}",
-            "Glossary mappings:",
-            glossary_lines or "(none)",
-            f"Source text: {source_text}",
-            f"Committed source prefix: {source_state.committed_source_text or '(none)'}",
-            f"Live source tail: {source_state.live_source_tail or '(none)'}",
-            f"Entities: {entity_text}",
-            f"Temporal markers: {temporal_text}",
-            f"Numbers: {number_text}",
-            f"Negations: {negation_text}",
-            f"Conditions: {condition_text}",
-        ]
-        if write_plan.mode == "concise":
-            prompt_lines.append("Be concise and remove filler words when possible without changing meaning.")
-        elif write_plan.mode == "hold_high_risk":
-            prompt_lines.append(
-                "Stay literal and conservative. Translate visible risky content faithfully and do not paraphrase away uncertainty."
-            )
-        return "\n".join(prompt_lines)
+        new_segment = source_text.strip() or source_state.live_source_tail.strip() or source_state.raw_text.strip()
+
+        # Translate each segment INDEPENDENTLY. Injecting the previous target as
+        # context caused a small model to echo/repeat the previous sentence when
+        # the new segment was a short fragment (a common cause of "garbled"
+        # output after a few sentences), so it is intentionally omitted.
+        return f"Translate this into {LANG_DISPLAY_NAMES.get(target_lang, target_lang)}:\n{new_segment}"
 
     def _meta(self, mode: str, latency_ms: float) -> dict[str, object]:
         return {
@@ -406,6 +406,7 @@ class StudentEditorManagerTranslatorEngine:
         context_pack: ContextPack,
         source_lang: str,
         target_lang: str,
+        previous_target_text: str = "",
     ) -> tuple[str, dict[str, object], float]:
         return await asyncio.to_thread(
             self._generate_sync,

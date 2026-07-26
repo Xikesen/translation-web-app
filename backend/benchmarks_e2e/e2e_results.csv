@@ -1,0 +1,8 @@
+id,lang,target_lang,audio_s,error_rate,chrf,judge,first_transcript_ms,tail_latency_ms,reference_text,hyp_transcript,reference_translation,hyp_translation
+en-01,en,zh,2.22,0.125,31.98,,9397.1,7011.7,The meeting will start at nine tomorrow morning.,The meeting will start at 9 tomorrow morning.,会议将于明天上午九点开始。,会议明天早上九点开始。
+en-02,en,zh,2.33,0.2857,34.45,,7629.7,5124.9,Our revenue grew fifteen percent this quarter.,Our revenue grew 15 % this quarter.,我们本季度的收入增长了百分之十五。,我们本季度收入增长了15%。
+en-03,en,zh,2.17,0.0,66.29,,8485.7,6158.1,Please send me the report before Friday.,Please send me the report before Friday.,请在周五之前把报告发给我。,请在周五前把报告发给我。
+en-04,en,zh,2.71,0.2222,65.98,,7896.1,11503.3,We cannot ship the product unless the test passes.,We cannot ship the product unless the test pass. services.,除非测试通过，否则我们无法发货。,除非测试通过，否则我们不能发货。 服务。
+zh-01,zh,en,2.95,0.1818,92.27,,7624.2,10266.1,如果明天下雨，会议就取消。,"如果 明 天 下 雨, 會 議 就 … 取 消","If it rains tomorrow, the meeting will be canceled.","If it rains tomorrow, the meeting will... be canceled."
+zh-02,zh,en,2.92,0.2143,60.66,,8266.1,10478.9,我们的团队下个月搬到新办公室。,我们 的 团 队 下 个 月 搬 到 新 办 公 室 工 工 室,Our team will move to the new office next month.,Our team is moving to a new office next month. office
+zh-03,zh,en,2.82,0.8571,90.49,,7830.2,10029.0,这个项目的预算不能超过一百万。,這個 項 目 的 預 算 不能 超 過 100 % 100 萬,The budget for this project cannot exceed one million.,The budget for this project cannot exceed 100%. one million
